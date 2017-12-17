@@ -1,0 +1,18 @@
+workspace(name = "example")
+
+# PIP => bazel transition
+local_repository(
+    name = "io_bazel_rules_python",
+    path = "../../.."
+)
+
+load("@io_bazel_rules_python//python:pip.bzl", "pip_repositories", "pip_import")
+pip_repositories()
+
+pip_import(
+    name="pip_deps",
+    requirements="//:requirements-pip.txt",
+    requirements_fix="//:requirements-pip-fix.txt"
+)
+load("@pip_deps//:requirements.bzl", "pip_install")
+pip_install()

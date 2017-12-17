@@ -23,13 +23,16 @@ def _pip_import_impl(repository_ctx):
   repository_ctx.file("BUILD", "")
 
   # To see the output, pass: quiet=False
-  result = repository_ctx.execute([
+  cmd = [
     "python", repository_ctx.path(repository_ctx.attr._script),
     "--name", repository_ctx.attr.name,
     "--input", repository_ctx.path(repository_ctx.attr.requirements),
     "--output", repository_ctx.path("requirements.bzl"),
     "--directory", repository_ctx.path(""),
-  ])
+  ]
+  if repository_ctx.attr.requirements_fix:
+      cmd += ["--input-fix", repository_ctx.path(repository_ctx.attr.requirements_fix)]
+  result = repository_ctx.execute(cmd)
 
   if result.return_code:
     fail("pip_import failed: %s (%s)" % (result.stdout, result.stderr))
@@ -39,6 +42,11 @@ pip_import = repository_rule(
         "requirements": attr.label(
             allow_files = True,
             mandatory = True,
+            single_file = True,
+        ),
+        "requirements_fix": attr.label(
+            allow_files = True,
+            mandatory = False,
             single_file = True,
         ),
         "_script": attr.label(

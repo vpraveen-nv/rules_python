@@ -14,6 +14,7 @@
 """The whl modules defines classes for interacting with Python packages."""
 
 import argparse
+import itertools
 import json
 import os
 import re
@@ -24,6 +25,13 @@ class Wheel(object):
 
   def __init__(self, path):
     self._path = path
+    self._extra_deps = []
+
+  def add_extra_deps(self, deps):
+    self._extra_deps += deps
+
+  def get_extra_deps(self):
+    return sorted(list(set(self._extra_deps)))
 
   def path(self):
     return self._path
@@ -120,6 +128,9 @@ parser.add_argument('--whl', action='store',
 parser.add_argument('--requirements', action='store',
                     help='The pip_import from which to draw dependencies.')
 
+parser.add_argument('--add-dependency', action='append',
+                    help='TODO')
+
 parser.add_argument('--directory', action='store', default='.',
                     help='The directory into which to expand things.')
 
@@ -130,8 +141,17 @@ def main():
   args = parser.parse_args()
   whl = Wheel(args.whl)
 
+  extra_deps = args.add_dependency
+  if not extra_deps:
+      extra_deps = []
+
   # Extract the files into the current directory
   whl.expand(args.directory)
+
+  imports = ['.']
+  purelib_path = os.path.join(args.directory, '%s-%s.data' % (whl.distribution(), whl.version()), 'purelib')
+  if os.path.isdir(purelib_path):
+      imports.append(purelib_path)
 
   with open(os.path.join(args.directory, 'BUILD'), 'w') as f:
     f.write("""
@@ -145,15 +165,16 @@ py_library(
     data = glob(["**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
     # This makes this directory a top-level in the python import
     # search path for anything that depends on this.
-    imports = ["."],
+    imports = [{imports}],
     deps = [{dependencies}],
 )
 {extras}""".format(
   requirements=args.requirements,
   dependencies=','.join([
     'requirement("%s")' % d
-    for d in whl.dependencies()
+    for d in itertools.chain(whl.dependencies(), extra_deps)
   ]),
+  imports=','.join(map(lambda i: '"%s"' % i, imports)),
   extras='\n\n'.join([
     """py_library(
     name = "{extra}",
@@ -163,7 +184,7 @@ py_library(
 )""".format(extra=extra,
             deps=','.join([
                 'requirement("%s")' % dep
-                for dep in whl.dependencies(extra)
+                for dep in itertools.chain(whl.dependencies(extra), extra_deps)
             ]))
     for extra in args.extras or []
   ])))

@@ -23,6 +23,10 @@ def _whl_impl(repository_ctx):
     "--requirements", repository_ctx.attr.requirements,
   ]
 
+  if repository_ctx.attr.extra_deps:
+      for d in repository_ctx.attr.extra_deps:
+          args += ["--add-dependency", d]
+
   if repository_ctx.attr.extras:
     args += [
       "--extras=%s" % extra
@@ -41,6 +45,7 @@ whl_library = repository_rule(
             single_file = True,
         ),
         "requirements": attr.string(),
+        "extra_deps": attr.string_list(),
         "extras": attr.string_list(),
         "_script": attr.label(
             executable = True,

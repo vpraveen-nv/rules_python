@@ -90,6 +90,9 @@ parser.add_argument('--name', action='store',
 parser.add_argument('--input', action='store',
                     help=('The requirements.txt file to import.'))
 
+parser.add_argument('--input-fix', action='store',
+                    help=('The requirements-fix.txt file to import.'))
+
 parser.add_argument('--output', action='store',
                     help=('The requirements.bzl file to export.'))
 
@@ -168,6 +171,18 @@ def main():
   whls = [Wheel(path) for path in list_whls()]
   possible_extras = determine_possible_extras(whls)
 
+  if args.input_fix:
+      with open(args.input_fix, 'r') as f:
+          lines = f.readlines()
+          for line in lines:
+              items = line.strip().split(' ')
+              main_ref = items[0]
+              others = items[1:]
+              for w in whls:
+                  if w.distribution().lower() == main_ref.replace('-', '_').lower():
+                      w.add_extra_deps(others)
+                      break
+
   def whl_library(wheel):
     # Indentation here matters.  whl_library must be within the scope
     # of the function below.  We also avoid reimporting an existing WHL.
@@ -177,13 +192,17 @@ def main():
         name = "{repo_name}",
         whl = "@{name}//:{path}",
         requirements = "@{name}//:requirements.bzl",
-        extras = [{extras}]
+        extras = [{extras}],
+        extra_deps = [{extra_deps}]
     )""".format(name=args.name, repo_name=wheel.repository_name(),
                 path=wheel.basename(),
                 extras=','.join([
                   '"%s"' % extra
                   for extra in possible_extras.get(wheel, [])
-                ]))
+                ]),
+                extra_deps=','.join([
+                    '"%s"' % extra
+                    for extra in wheel.get_extra_deps()]))
 
   whl_targets = ','.join([
     ','.join([
