@@ -186,7 +186,7 @@ def main():
   def whl_library(wheel):
     # Indentation here matters.  whl_library must be within the scope
     # of the function below.  We also avoid reimporting an existing WHL.
-    return """
+    clean = """
   if "{repo_name}" not in native.existing_rules():
     whl_library(
         name = "{repo_name}",
@@ -204,6 +204,26 @@ def main():
                     '"%s"' % extra
                     for extra in wheel.get_extra_deps()]))
 
+    dirty = """
+  if "{repo_name}" not in native.existing_rules():
+    whl_library_dirty(
+        name = "{repo_name}",
+        whl = "@{name}//:{path}",
+        requirements = "@{name}//:requirements.bzl",
+        extras = [{extras}],
+        extra_deps = [{extra_deps}]
+    )""".format(name=args.name, repo_name=wheel.repository_name() + '_dirty',
+                path=wheel.basename(),
+                extras=','.join([
+                  '"%s"' % extra
+                  for extra in possible_extras.get(wheel, [])
+                ]),
+                extra_deps=','.join([
+                    '"%s"' % extra
+                    for extra in wheel.get_extra_deps()]))
+
+    return clean + '\n' + dirty
+
   whl_targets = ','.join([
     ','.join([
       '"%s": "@%s//:pkg"' % (whl.distribution().lower(), whl.repository_name())
@@ -216,13 +236,25 @@ def main():
     for whl in whls
   ])
 
+  whl_targets = whl_targets + ',' + ','.join([
+    ','.join([
+      '"%s": "@%s//:pkg"' % (whl.distribution().lower() + ':dirty', whl.repository_name() + '_dirty')
+    ] + [
+      # For every extra that is possible from this requirements.txt
+      '"%s[%s]": "@%s//:%s"' % (whl.distribution().lower() + ':dirty', extra.lower(),
+                                whl.repository_name() + '_dirty', extra)
+      for extra in possible_extras.get(whl, [])
+    ])
+    for whl in whls
+  ])
+
   with open(args.output, 'w') as f:
     f.write("""\
 # Install pip requirements.
 #
 # Generated from {input}
 
-load("@io_bazel_rules_python//python:whl.bzl", "whl_library")
+load("@io_bazel_rules_python//python:whl.bzl", "whl_library", "whl_library_dirty")
 
 def pip_install():
   {whl_libraries}

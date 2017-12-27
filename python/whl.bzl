@@ -33,6 +33,9 @@ def _whl_impl(repository_ctx):
       for extra in repository_ctx.attr.extras
     ]
 
+  if repository_ctx.attr._dirty:
+      args += ['--dirty']
+
   result = repository_ctx.execute(args)
   if result.return_code:
     fail("whl_library failed: %s (%s)" % (result.stdout, result.stderr))
@@ -47,6 +50,27 @@ whl_library = repository_rule(
         "requirements": attr.string(),
         "extra_deps": attr.string_list(),
         "extras": attr.string_list(),
+        "_dirty": attr.bool(default=False),
+        "_script": attr.label(
+            executable = True,
+            default = Label("//rules_python:whl.py"),
+            cfg = "host",
+        ),
+    },
+    implementation = _whl_impl,
+)
+
+whl_library_dirty = repository_rule(
+    attrs = {
+        "whl": attr.label(
+            allow_files = True,
+            mandatory = True,
+            single_file = True,
+        ),
+        "requirements": attr.string(),
+        "extra_deps": attr.string_list(),
+        "extras": attr.string_list(),
+        "_dirty": attr.bool(default=True),
         "_script": attr.label(
             executable = True,
             default = Label("//rules_python:whl.py"),

@@ -108,9 +108,48 @@ class Wheel(object):
   def extras(self):
     return self.metadata().get('extras', [])
 
-  def expand(self, directory):
+  def _expand_single(self, directory):
     with zipfile.ZipFile(self.path(), 'r') as whl:
       whl.extractall(directory)
+
+  # TODO(conrado): add support for initial extra not being empty (from pip)
+  # TODO(conrado): add support for extra dependencies
+  def _expand_recursive(self, directory, wheel_map, extracted={}, extra=None):
+    self._expand_single(directory)
+
+    for d in self.dependencies(extra):
+        d = d.replace('-', '_')
+        e = None
+        if '[' in d:
+            d, e = d.split('[')
+            e = e[:-1]
+        if (d, e) not in extracted:
+            extracted[(d,e)] = True
+            wheel_map[d]._expand_recursive(directory, wheel_map, extracted, e)
+
+  def expand(self, directory, dirty=False):
+    if dirty:
+        wheel_folder = os.path.dirname(self.path())
+        # Enumerate the .whl files we downloaded.
+        def list_whls(dir):
+          for root, unused_dirnames, filenames in os.walk(dir):
+            for fname in filenames:
+              if fname.endswith('.whl'):
+                yield os.path.join(root, fname)
+
+        wheels = [Wheel(path) for path in list_whls(wheel_folder)]
+        wheel_map = {w.distribution(): w for w in wheels}
+
+        extracted = {}
+        self._expand_recursive(directory, wheel_map, extracted)
+
+        for root, dirs, files in os.walk(directory):
+            if '__init__.py' not in files:
+                with open(os.path.join(root, '__init__.py'), 'w') as f:
+                    pass
+    else:
+        self._expand_single(directory)
+
 
   # _parse_metadata parses METADATA files according to https://www.python.org/dev/peps/pep-0314/
   def _parse_metadata(self, content):
@@ -137,7 +176,14 @@ parser.add_argument('--directory', action='store', default='.',
 parser.add_argument('--extras', action='append',
                     help='The set of extras for which to generate library targets.')
 
+parser.add_argument('--dirty', action='store_true',
+                    help='TODO')
+
 def main():
+  import sys
+  with open('/tmp/args', 'w') as f:
+    f.write('%r' % sys.argv)
+
   args = parser.parse_args()
   whl = Wheel(args.whl)
 
@@ -146,7 +192,9 @@ def main():
       extra_deps = []
 
   # Extract the files into the current directory
-  whl.expand(args.directory)
+  # TODO(conrado): do one expansion for each extra? It might be easier to create completely new
+  # wheel repos
+  whl.expand(args.directory, args.dirty)
 
   imports = ['.']
   purelib_path = os.path.join(args.directory, '%s-%s.data' % (whl.distribution(), whl.version()), 'purelib')
@@ -173,7 +221,7 @@ py_library(
   dependencies=','.join([
     'requirement("%s")' % d
     for d in itertools.chain(whl.dependencies(), extra_deps)
-  ]),
+  ]) if not args.dirty else '',
   imports=','.join(map(lambda i: '"%s"' % i, imports)),
   extras='\n\n'.join([
     """py_library(
