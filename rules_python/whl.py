@@ -180,10 +180,6 @@ parser.add_argument('--dirty', action='store_true',
                     help='TODO')
 
 def main():
-  import sys
-  with open('/tmp/args', 'w') as f:
-    f.write('%r' % sys.argv)
-
   args = parser.parse_args()
   whl = Wheel(args.whl)
 
