@@ -30,6 +30,8 @@ def _pip_import_impl(repository_ctx):
     "--output", repository_ctx.path("requirements.bzl"),
     "--directory", repository_ctx.path(""),
   ]
+  extra_cmd = [["--pip_args", a] for a in repository_ctx.attr.pip_args]
+  cmd = cmd + [a for args in extra_cmd for a in args]
   if repository_ctx.attr.requirements_fix:
       cmd += ["--input-fix", repository_ctx.path(repository_ctx.attr.requirements_fix)]
   result = repository_ctx.execute(cmd)
@@ -49,6 +51,7 @@ pip_import = repository_rule(
             mandatory = False,
             single_file = True,
         ),
+        "pip_args": attr.string_list(),
         "_script": attr.label(
             executable = True,
             default = Label("//tools:piptool.par"),

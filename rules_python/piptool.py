@@ -93,6 +93,9 @@ parser.add_argument('--input', action='store',
 parser.add_argument('--input-fix', action='store',
                     help=('The requirements-fix.txt file to import.'))
 
+parser.add_argument('--pip_args', action='append',
+                    help=('Extra arguments to send to pip.'))
+
 parser.add_argument('--output', action='store',
                     help=('The requirements.bzl file to export.'))
 
@@ -156,8 +159,15 @@ def determine_possible_extras(whls):
 def main():
   args = parser.parse_args()
 
+  pip_args = []
+  if args.pip_args:
+    pip_args = args.pip_args
+    # Handle the case where we had to add quotes to pass arguments with dashes
+    pip_args = [a if a[0] != "'" and a[0] != '"' else a[1:] for a in pip_args]
+    pip_args = [a if a[-1] != "'" and a[-1] != '"' else a[:-1] for a in pip_args]
+
   # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-  if pip_main(["wheel", "-w", args.directory, "-r", args.input]):
+  if pip_main(["wheel", "-w", args.directory, "-r", args.input] + pip_args):
     sys.exit(1)
 
   # Enumerate the .whl files we downloaded.
