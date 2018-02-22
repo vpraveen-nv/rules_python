@@ -34,7 +34,7 @@ def _pip_import_impl(repository_ctx):
   cmd = cmd + [a for args in extra_cmd for a in args]
   if repository_ctx.attr.requirements_fix:
       cmd += ["--input-fix", repository_ctx.path(repository_ctx.attr.requirements_fix)]
-  result = repository_ctx.execute(cmd)
+  result = repository_ctx.execute(cmd, quiet=False)
 
   if result.return_code:
     fail("pip_import failed: %s (%s)" % (result.stdout, result.stderr))
