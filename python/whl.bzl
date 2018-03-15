@@ -13,72 +13,93 @@
 # limitations under the License.
 """Import .whl files into Bazel."""
 
-def _whl_impl(repository_ctx):
-  """Core implementation of whl_library."""
+load(
+    "@bazel_tools//tools/build_defs/hash:hash.bzl",
+    _hash_tools = "tools",
+    _sha256 = "sha256",
+)
 
-  args = [
-    "python",
-    repository_ctx.path(repository_ctx.attr._script),
-    "--whl", repository_ctx.path(repository_ctx.attr.whl),
-    "--requirements", repository_ctx.attr.requirements,
-  ]
-
-  if repository_ctx.attr.extra_deps:
-      for d in repository_ctx.attr.extra_deps:
-          args += ["--add-dependency", d]
-
-  if repository_ctx.attr.extras:
-    args += [
-      "--extras=%s" % extra
-      for extra in repository_ctx.attr.extras
+def _extract_wheels(ctx, wheels):
+    args = [
+        "python",
+        ctx.path(ctx.attr._piptool),
+        "extract",
+        "--directory", str(ctx.path("")),
+        "--repository", ctx.attr.repository,
     ]
 
-  if repository_ctx.attr._dirty:
-      args += ['--dirty']
+    args += ["--whl=%s" % w for w in wheels]
+    args += ["--add-dependency=%s" % d for d in ctx.attr.additional_runtime_deps]
+    args += ["--extras=%s" % extra for extra in ctx.attr.extras]
 
-  result = repository_ctx.execute(args)
-  if result.return_code:
-    fail("whl_library failed: %s (%s)" % (result.stdout, result.stderr))
+    result = ctx.execute(args, quiet=False)
+    if result.return_code:
+        fail("extract_wheels failed: %s (%s)" % (result.stdout, result.stderr))
 
-whl_library = repository_rule(
+def _download_or_build_wheel_impl(ctx):
+    """Core implementation of whl_library."""
+
+    root = str(ctx.path("../..")) + '/'
+    pythonpath = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
+    cmd = [
+        "python",
+        ctx.path(ctx.attr._piptool),
+        "build",
+        "--directory", ctx.path(""),
+    ]
+    cmd += ["--", ctx.attr.requirement]
+    cmd += ctx.attr.pip_args
+    #cmd += ["--no-cache-dir"]
+    cmd += ["--no-deps"]
+    result = ctx.execute(cmd, quiet=False, environment={'PYTHONPATH': pythonpath})
+    if result.return_code:
+        fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
+    result = ctx.execute(["sh", "-c", "ls ./%s" % ctx.attr.wheel_name])
+    if result.return_code:
+        fail("whl not found: %s (%s)" % (result.stdout, result.stderr))
+    ctx.file("BUILD", "")
+
+download_or_build_wheel = repository_rule(
     attrs = {
-        "whl": attr.label(
-            allow_files = True,
-            mandatory = True,
-            single_file = True,
+        "requirement": attr.string(),
+        "buildtime_deps": attr.label_list(
+            allow_files=["*.whl"],
         ),
-        "requirements": attr.string(),
-        "extra_deps": attr.string_list(),
-        "extras": attr.string_list(),
-        "_dirty": attr.bool(default=False),
-        "_script": attr.label(
+        "wheel_name": attr.string(),
+        "pip_args": attr.string_list(),
+        "_piptool": attr.label(
             executable = True,
-            default = Label("//rules_python:whl.py"),
+            default = Label("//tools:piptool.par"),
             cfg = "host",
         ),
     },
-    implementation = _whl_impl,
+    implementation = _download_or_build_wheel_impl,
 )
 
-whl_library_dirty = repository_rule(
+
+def _extract_wheels_impl(ctx):
+    """Core implementation of extract_wheels."""
+    for w in ctx.attr.wheels:
+        ctx.symlink(w, w.name)
+    _extract_wheels(ctx, [ctx.path(w) for w in ctx.attr.wheels])
+
+extract_wheels = repository_rule(
     attrs = {
-        "whl": attr.label(
+        "wheels": attr.label_list(
             allow_files = True,
-            mandatory = True,
-            single_file = True,
         ),
-        "requirements": attr.string(),
-        "extra_deps": attr.string_list(),
+        "additional_runtime_deps": attr.string_list(),
+        "repository":  attr.string(),
         "extras": attr.string_list(),
-        "_dirty": attr.bool(default=True),
-        "_script": attr.label(
+        "_piptool": attr.label(
             executable = True,
-            default = Label("//rules_python:whl.py"),
+            default = Label("//tools:piptool.par"),
             cfg = "host",
         ),
     },
-    implementation = _whl_impl,
+    implementation = _extract_wheels_impl,
 )
+
 
 """A rule for importing <code>.whl</code> dependencies into Bazel.
 
@@ -90,7 +111,7 @@ This rule imports a <code>.whl</code> file as a <code>py_library</code>:
 <pre><code>whl_library(
     name = "foo",
     whl = ":my-whl-file",
-    requirements = "name of pip_import rule",
+    repository = "name of pip_import rule",
 )
 </code></pre>
 

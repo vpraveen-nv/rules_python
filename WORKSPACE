@@ -149,3 +149,24 @@ load(
 )
 
 _extras_install()
+
+pip_import(
+    name = "examples_checked_in_requirements_bzl",
+    requirements = "//examples/checked_in_requirements_bzl:requirements.txt",
+    requirements_bzl = "//examples/checked_in_requirements_bzl:requirements.bzl",
+    additional_buildtime_deps = {
+        "pycuda": ["numpy"],
+        "pip": ["botocore"],
+    },
+    additional_runtime_deps = {
+        "scikit-learn": ["scipy", "numpy"],
+        "pip": ["docutils"],
+    },
+)
+
+load(
+    "@examples_checked_in_requirements_bzl//:requirements.bzl",
+    _checked_in_requirements_bzl_install = "pip_install",
+)
+
+_checked_in_requirements_bzl_install()

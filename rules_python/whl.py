@@ -14,6 +14,8 @@
 """The whl modules defines classes for interacting with Python packages."""
 
 import argparse
+import collections
+import distlib.markers
 import itertools
 import json
 import os
@@ -26,9 +28,23 @@ class Wheel(object):
   def __init__(self, path):
     self._path = path
     self._extra_deps = []
+    self._extra_buildtime_deps = []
+    self._extra_runtime_deps = []
+
+  def add_extra_buildtime_deps(self, deps):
+    self._extra_buildtime_deps += deps
+
+  def add_extra_runtime_deps(self, deps):
+    self._extra_runtime_deps += deps
 
   def add_extra_deps(self, deps):
     self._extra_deps += deps
+
+  def get_extra_buildtime_deps(self):
+    return sorted(list(set(self._extra_buildtime_deps)))
+
+  def get_extra_runtime_deps(self):
+    return sorted(list(set(self._extra_runtime_deps)))
 
   def get_extra_deps(self):
     return sorted(list(set(self._extra_deps)))
@@ -49,9 +65,9 @@ class Wheel(object):
     parts = self.basename().split('-')
     return parts[1]
 
-  def repository_name(self):
+  def repository_name(self, prefix='pypi'):
     # Returns the canonical name of the Bazel repository for this package.
-    canonical = 'pypi__{}_{}'.format(self.distribution(), self.version())
+    canonical = '{}__{}_{}'.format(prefix, self.distribution(), self.version())
     # Escape any illegal characters with underscore.
     return re.sub('[-.]', '_', canonical)
 
@@ -76,9 +92,9 @@ class Wheel(object):
         return self._parse_metadata(f.read().decode("utf-8"))
 
   def name(self):
-    return self.metadata().get('name')
+    return self.metadata().get('name').lower()
 
-  def dependencies(self, extra=None):
+  def dependencies(self, extra=None, all_extras=False):
     """Access the dependencies of this Wheel.
 
     Args:
@@ -91,149 +107,57 @@ class Wheel(object):
     # TODO(mattmoor): Is there a schema to follow for this?
     found = set()
     run_requires = self.metadata().get('run_requires', [])
+
     for requirement in run_requires:
       if requirement.get('extra') != extra:
         # Match the requirements for the extra we're looking for.
         continue
       if 'environment' in requirement:
-        # TODO(mattmoor): What's the best way to support "environment"?
-        # This typically communicates things like python version (look at
-        # "wheel" for a good example)
-        continue
+        try:
+          if not distlib.markers.interpret(requirement['environment'], {'extra': extra}):
+            continue
+        except SyntaxError as e:
+          raise RuntimeError('Error interpreting environment for {} ({}): {}'.format(
+                             self.name(), requirement['environment'], str(e)))
       requires = requirement.get('requires', [])
       for entry in requires:
         # Strip off any trailing versioning data.
         parts = re.split('[ ><=()]', entry)
-        found.add(parts[0])
+        found.add(parts[0].lower())
     return found
 
   def extras(self):
     return self.metadata().get('extras', [])
 
-  def _expand_single(self, directory):
+  def expand(self, directory):
     with zipfile.ZipFile(self.path(), 'r') as whl:
       whl.extractall(directory)
 
-  # TODO(conrado): add support for initial extra not being empty (from pip)
-  # TODO(conrado): add support for extra dependencies
-  def _expand_recursive(self, directory, wheel_map, extracted={}, extra=None):
-    self._expand_single(directory)
-
-    for d in self.dependencies(extra):
-        d = d.replace('-', '_')
-        e = None
-        if '[' in d:
-            d, e = d.split('[')
-            e = e[:-1]
-        if (d, e) not in extracted:
-            extracted[(d,e)] = True
-            wheel_map[d]._expand_recursive(directory, wheel_map, extracted, e)
-
-  def expand(self, directory, dirty=False):
-    if dirty:
-        wheel_folder = os.path.dirname(self.path())
-        # Enumerate the .whl files we downloaded.
-        def list_whls(dir):
-          for root, unused_dirnames, filenames in os.walk(dir):
-            for fname in filenames:
-              if fname.endswith('.whl'):
-                yield os.path.join(root, fname)
-
-        wheels = [Wheel(path) for path in list_whls(wheel_folder)]
-        wheel_map = {w.distribution(): w for w in wheels}
-
-        extracted = {}
-        self._expand_recursive(directory, wheel_map, extracted)
-
-        for root, dirs, files in os.walk(directory):
-            if '__init__.py' not in files:
-                with open(os.path.join(root, '__init__.py'), 'w') as f:
-                    pass
-    else:
-        self._expand_single(directory)
-
-
   # _parse_metadata parses METADATA files according to https://www.python.org/dev/peps/pep-0314/
   def _parse_metadata(self, content):
-    # TODO: handle fields other than just name
     name_pattern = re.compile('Name: (.*)')
-    return { 'name': name_pattern.search(content).group(1) }
-
-
-parser = argparse.ArgumentParser(
-    description='Unpack a WHL file as a py_library.')
-
-parser.add_argument('--whl', action='store',
-                    help=('The .whl file we are expanding.'))
-
-parser.add_argument('--requirements', action='store',
-                    help='The pip_import from which to draw dependencies.')
-
-parser.add_argument('--add-dependency', action='append',
-                    help='TODO')
-
-parser.add_argument('--directory', action='store', default='.',
-                    help='The directory into which to expand things.')
-
-parser.add_argument('--extras', action='append',
-                    help='The set of extras for which to generate library targets.')
-
-parser.add_argument('--dirty', action='store_true',
-                    help='TODO')
-
-def main():
-  args = parser.parse_args()
-  whl = Wheel(args.whl)
-
-  extra_deps = args.add_dependency
-  if not extra_deps:
-      extra_deps = []
-
-  # Extract the files into the current directory
-  # TODO(conrado): do one expansion for each extra? It might be easier to create completely new
-  # wheel repos
-  whl.expand(args.directory, args.dirty)
-
-  imports = ['.']
-  purelib_path = os.path.join(args.directory, '%s-%s.data' % (whl.distribution(), whl.version()), 'purelib')
-  if os.path.isdir(purelib_path):
-      imports.append(purelib_path)
-
-  with open(os.path.join(args.directory, 'BUILD'), 'w') as f:
-    f.write("""
-package(default_visibility = ["//visibility:public"])
-
-load("{requirements}", "requirement")
-
-py_library(
-    name = "pkg",
-    srcs = glob(["**/*.py"]),
-    data = glob(["**/*"], exclude=["**/*.py", "**/* *", "BUILD", "WORKSPACE"]),
-    # This makes this directory a top-level in the python import
-    # search path for anything that depends on this.
-    imports = [{imports}],
-    deps = [{dependencies}],
-)
-{extras}""".format(
-  requirements=args.requirements,
-  dependencies=','.join([
-    'requirement("%s")' % d
-    for d in itertools.chain(whl.dependencies(), extra_deps)
-  ]) if not args.dirty else '',
-  imports=','.join(map(lambda i: '"%s"' % i, imports)),
-  extras='\n\n'.join([
-    """py_library(
-    name = "{extra}",
-    deps = [
-        ":pkg",{deps}
-    ],
-)""".format(extra=extra,
-            deps=','.join([
-                'requirement("%s")' % dep
-                for dep in itertools.chain(whl.dependencies(extra), extra_deps)
-            ]))
-    for extra in args.extras or []
-  ])))
-
-if __name__ == '__main__':
-  main()
+    extra_pattern = re.compile('Provides-Extra: (.*)')
+    dep_pattern = re.compile('Requires-Dist: ([^;]+)(;(.*))?')
+    deps = []
+    extras = []
+    env_deps = collections.defaultdict(list)
+    for line in content.splitlines():
+      m = dep_pattern.match(line)
+      if m:
+        dep = m.group(1).strip()
+        env = m.group(3)
+        if env:
+          env_deps[env.strip()] += [dep]
+        else:
+          deps += [dep]
+      m = extra_pattern.match(line)
+      if m:
+        extras += [m.group(1).strip()]
+    return {
+      'name': name_pattern.search(content).group(1).strip(),
+      'extras': list(set(extras)),
+      'run_requires': [{ 'requires': deps }] + [{
+        'environment': k,
+        'requires': v,
+      } for k, v in env_deps.items()],
+    }

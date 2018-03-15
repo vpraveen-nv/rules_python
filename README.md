@@ -63,12 +63,22 @@ load("@io_bazel_rules_python//python:pip.bzl", "pip_import")
 pip_import(
    name = "my_deps",
    requirements = "//path/to:requirements.txt",
+   # Optional: if you want to use checked-in requirements.bzl.
+   requirements_bzl = "//path/to:requirements.bzl",
 )
 
 # Load the pip_install symbol for my_deps, and create the dependencies'
 # repositories.
 load("@my_deps//:requirements.bzl", "pip_install")
 pip_install()
+```
+
+Using checked-in `requirements.bzl` can result in faster builds, since `requirements.bzl` does
+not need to be generated on the fly.  If `requirements_bzl` is used, then the checked-in
+`requirements.bzl` can be updated with:
+
+```sh
+bazel run @my_deps//:update
 ```
 
 ## Consuming `pip` dependencies

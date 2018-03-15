@@ -12,7 +12,9 @@ pip_repositories()
 pip_import(
     name="pip_deps",
     requirements="//:requirements-pip.txt",
-    requirements_fix="//:requirements-pip-fix.txt"
+    additional_runtime_deps = {
+        "keras": ["tensorflow-gpu"],
+    }
 )
 load("@pip_deps//:requirements.bzl", "pip_install")
 pip_install()
