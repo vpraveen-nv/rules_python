@@ -400,9 +400,10 @@ _wheels = {{
 all_requirements = _requirements.values()
 
 def requirement(name):
-  if name not in _requirements:
+  key = name.lower()
+  if key not in _requirements:
     fail("Could not find pip-provided dependency: '%s'" % name)
-  return _requirements[name]
+  return _requirements[key]
 
 def whl_library(**kwargs):
   _whl_library(wheels_map=_wheels, **kwargs)
