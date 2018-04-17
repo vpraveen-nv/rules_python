@@ -36,6 +36,9 @@ def _extract_wheels(ctx, wheels):
         args += ["--add-build-content=%s" % ctx.path(ctx.attr.additional_build_content)]
     args += ["--extras=%s" % extra for extra in ctx.attr.extras]
 
+    # Add our sitecustomize.py that ensures all .pth files are run.
+    args += ["--add-dependency=@io_bazel_rules_python//python:site"]
+
     result = ctx.execute(args, quiet=False)
     if result.return_code:
         fail("extract_wheels failed: %s (%s)" % (result.stdout, result.stderr))

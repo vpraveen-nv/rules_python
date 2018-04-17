@@ -21,3 +21,9 @@ exports_files([
     "whl.bzl",
     "__init__.py",
 ])
+
+py_library(
+    name = "site",
+    srcs = [":sitecustomize.py"],
+    imports = ["."],
+)
