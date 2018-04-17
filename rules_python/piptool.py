@@ -104,14 +104,50 @@ def build_wheel(args):
   if pip_main(pip_args):
     sys.exit(1)
 
-def build(args):
-  build_wheel(args)
+  cache_url = get_cache_url(args)
+  if cache_url:
+    wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
+    with open(wheel_filename, 'rb') as f:
+      try:
+        r = requests.put(cache_url, data=f.read())
+        if r.status_code == requests.codes.ok:
+          print("Uploaded {}".format(cache_url))
+      except requests.exceptions.ConnectionError:
+        # Probably no access to write to the cache
+        pass
 
-parser = subparsers.add_parser('build', help='Download or build a single wheel')
+def get_cache_url(args):
+  cache_base = os.environ.get("BAZEL_WHEEL_CACHE")
+  if not cache_base or not args.cache_key:
+    return None
+  return "http://{}/{}".format(cache_base, args.cache_key)
+
+def build(args):
+  cache_url = get_cache_url(args)
+  if cache_url:
+    r = requests.get(cache_url)
+    # 404 (not found) means cache miss
+    # 502 (bad gateway) usually means the proxy dropped the request (e.g. no access to cache)
+    if r.status_code in [404, 502]:
+      build_wheel(args)
+    else:
+      r.raise_for_status()
+      wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
+      with open(wheel_filename, 'w') as f:
+        for chunk in r.iter_content(chunk_size=128):
+          f.write(chunk)
+      print("Downloaded {}".format(cache_url))
+  else:
+    build_wheel(args)
+
+parser = subparsers.add_parser('build', help='Download or build a single wheel, optionally checking from cache first')
 parser.set_defaults(func=build)
 
 parser.add_argument('--directory', action='store', default='.',
                     help=('The directory into which to put .whl files.'))
+
+parser.add_argument('--cache-key', action='store',
+                    help=('The cache key to use when looking up .whl file from cache.'))
 
 parser.add_argument('args', nargs=argparse.REMAINDER,
                     help=('Extra arguments to send to pip.'))

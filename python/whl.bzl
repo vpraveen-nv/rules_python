@@ -39,6 +39,17 @@ def _extract_wheels(ctx, wheels):
 def _download_or_build_wheel_impl(ctx):
     """Core implementation of whl_library."""
 
+    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
+    cmd = [
+        "python",
+        "-c",
+        "import hashlib; print(hashlib.sha256('%s').hexdigest())" % hash_input,
+    ]
+    result = ctx.execute(cmd)
+    if result.return_code:
+        fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
+    cache_key = "%s/%s" % (result.stdout.strip(), ctx.attr.wheel_name)
+
     root = str(ctx.path("../..")) + '/'
     pythonpath = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
     cmd = [
@@ -46,6 +57,7 @@ def _download_or_build_wheel_impl(ctx):
         ctx.path(ctx.attr._piptool),
         "build",
         "--directory", ctx.path(""),
+        "--cache-key", cache_key,
     ]
     cmd += ["--", ctx.attr.requirement]
     cmd += ctx.attr.pip_args
@@ -74,6 +86,7 @@ download_or_build_wheel = repository_rule(
         ),
     },
     implementation = _download_or_build_wheel_impl,
+    environ = ["BAZEL_WHEEL_CACHE"],
 )
 
 
