@@ -18,7 +18,9 @@ python "%{piptool}" resolve \
     --input "$REQUIREMENTS_TXT" \
     --output "$REQUIREMENTS_BZL_TEMP" \
     --output-format download \
-    --directory $BUILD_AREA -- %{pip_args}
+    --directory $BUILD_AREA \
+    -- %{pip_args} \
+    --no-cache-dir
 
 cp "$REQUIREMENTS_BZL_TEMP" "$REQUIREMENTS_BZL"
 echo "$REQUIREMENTS_BZL updated!"

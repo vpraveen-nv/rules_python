@@ -88,6 +88,12 @@ global_parser = argparse.ArgumentParser(
     description='Import Python dependencies into Bazel.')
 subparsers = global_parser.add_subparsers()
 
+def split_extra(s):
+  parts = s.split("[")
+  if len(parts) == 1:
+    return parts[0], None
+  return parts[0], parts[1][:-1]
+
 
 # piptool build
 # -------------
@@ -328,6 +334,18 @@ def resolve(args):
   def quote(string):
     return '"{}"'.format(string)
 
+  whl_map = {
+    whl.name(): whl
+    for whl in whls
+  }
+
+  def transitive_deps(wheel, extra=None):
+    deps = wheel.dependencies(extra)
+    for dep in wheel.dependencies(extra):
+      d, extra = split_extra(dep)
+      deps = deps.union(transitive_deps(whl_map[d], extra))
+    return deps
+
   if args.output_format == 'download':
     # We are generating a checked-in version of requirements.bzl.
     # For determinism, avoid clashes with other pip_import repositories,
@@ -343,23 +361,28 @@ def resolve(args):
     wheel_repo = lambda w: args.name
 
   def whl_library(wheel):
-    attrs = {"name": quote(lib_repo(wheel))}
-    attrs["requirement"] = '"{}=={}"'.format(wheel.name(), wheel.version())
+    attrs = []
+    attrs += [("name", quote(lib_repo(wheel)))]
+    attrs += [("version", quote(wheel.version()))]
+    attrs += [("wheel_name", quote(wheel.basename()))]
     if args.output_format != 'download':
-      attrs["whl"] = '"@{}//:{}"'.format(args.name, wheel.basename())
+      attrs += [("whl", '"@{}//:{}"'.format(args.name, wheel.basename()))]
     extras = ', '.join([quote(extra) for extra in possible_extras.get(wheel, [])])
     if extras != '':
-      attrs["extras"] = '[{}]'.format(extras)
+      attrs += [("extras", '[{}]'.format(extras))]
     runtime_deps = ', '.join([quote(dep) for dep in wheel.dependencies()])
-    if runtime_deps != '':
-      attrs["runtime_deps"] = '[{}]'.format(runtime_deps)
+    #if runtime_deps != '':
+    #  attrs["runtime_deps"] = '[{}]'.format(runtime_deps)
+    transitive_runtime_deps = set([split_extra(dep)[0] for dep in transitive_deps(wheel)])
+    transitive_runtime_deps = ', '.join([quote(dep) for dep in transitive_runtime_deps])
+    if transitive_runtime_deps != '':
+      attrs += [("transitive_runtime_deps", '[{}]'.format(transitive_runtime_deps))]
 
     # Indentation here matters.  whl_library must be within the scope
     # of the function below.  We also avoid reimporting an existing WHL.
-    return """
-  whl_library(
-    {},
-  )""".format(",\n    ".join(["{} = {}".format(k, v) for k, v in attrs.items()]))
+    return """"{}": {{
+      {},
+    }},""".format(wheel.name(), ",\n      ".join(['"{}": {}'.format(k, v) for k, v in attrs]))
 
   requirements_map = ',\n  '.join([
     ',\n  '.join([
@@ -373,13 +396,6 @@ def resolve(args):
     ])
     for whl in whls
   ])
-  wheels_map = ',\n  '.join([
-    ',\n  '.join([
-      '"{name}": "@{repo}//:{whl}"'.format(
-          name=whl.name(), repo=wheel_repo(whl), whl=whl.basename())
-    ])
-    for whl in whls
-  ])
 
   with open(args.output, 'w') as f:
     f.write("""\
@@ -387,14 +403,10 @@ def resolve(args):
 #
 # Generated from {input}
 
-load("@{name}//python:whl.bzl", _whl_library = "whl_library")
+load("@{name}//python:whl.bzl", "whl_library")
 
 _requirements = {{
   {requirements_map}
-}}
-
-_wheels = {{
-  {wheels_map}
 }}
 
 all_requirements = _requirements.values()
@@ -405,15 +417,21 @@ def requirement(name):
     fail("Could not find pip-provided dependency: '%s'" % name)
   return _requirements[key]
 
-def whl_library(**kwargs):
-  _whl_library(wheels_map=_wheels, **kwargs)
-
 def pip_install():
-{whl_libraries}
+  all_libs = {{
+    {all_libs}
+  }}
+
+  for key, attributes in all_libs.items():
+    whl_library(
+      key = key,
+      all_libs = all_libs,
+      **attributes
+    )
 
 """.format(input=args.input, name=args.name,
-           whl_libraries='\n'.join(map(whl_library, whls)) if whls else "pass",
-           requirements_map=requirements_map, wheels_map=wheels_map))
+           all_libs='\n    '.join(map(whl_library, whls)),
+           requirements_map=requirements_map))
 
 parser = subparsers.add_parser('resolve', help='Resolve requirements.bzl from requirements.txt')
 parser.set_defaults(func=resolve)

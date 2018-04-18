@@ -25,7 +25,8 @@ py_test(
         requirement("pip"),
         requirement("google-cloud:dirty"),
         requirement("scikit-learn"),
-        #requirement("pycuda"),
-        requirement("botocore"),
+        requirement("pycuda"),
+        #requirement("botocore"),
+        requirement("pytest-mock"),
     ],
 )

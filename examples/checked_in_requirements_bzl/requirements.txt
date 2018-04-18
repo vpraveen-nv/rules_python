@@ -3,5 +3,7 @@ botocore
 scikit-learn==0.17.1
 scipy==0.17.1
 numpy==1.14.2
-#pycuda==2017.1.1
+pycuda==2017.1.1
 google-cloud==0.29.0
+pytest-mock==1.6.2
+setuptools_scm==2.0.0

@@ -39,19 +39,40 @@ def _extract_wheels(ctx, wheels):
 def _download_or_build_wheel_impl(ctx):
     """Core implementation of whl_library."""
 
+    env = {}
+
+    # Resolve the paths to the dependency wheels to force them to be created.
+    # This may cause re-starting this repository rule, see:
+    #  https://docs.bazel.build/versions/master/skylark/repository_rules.html#when-is-the-implementation-function-executed
+    # We don't actually use the wheels themselves, just their path where the
+    # wheel has been extracted (see below).
+    paths = [ctx.path(d) for d in ctx.attr.buildtime_deps]
+
+    # Compute a hash from the build time dependencies, and use that in the cache
+    # key.  The idea is that if any buildtime dependency changes versions, we will
+    # no longer use the same cached wheel.
     hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
-    cmd = [
-        "python",
-        "-c",
-        "import hashlib; print(hashlib.sha256('%s').hexdigest())" % hash_input,
-    ]
+    cmd = ["python", "-c", "import hashlib; print(hashlib.sha256('%s').hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
-        fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
+        fail("failed to compute checksum: %s (%s)" % (result.stdout, result.stderr))
     cache_key = "%s/%s" % (result.stdout.strip(), ctx.attr.wheel_name)
 
+    # Allowing "pip wheel" to download setup_requires packages with easy_install would
+    # poke a hole to our wheel version locking scheme, making wheel builds non-deterministic.
+    # Disable easy_install as instructed here:
+    #   https://pip.pypa.io/en/stable/reference/pip_install/#controlling-setup-requires
+    # We set HOME to the current directory so pip will look at this file; see:
+    #   https://docs.python.org/2/install/index.html#distutils-configuration-files
+    env["HOME"] = str(ctx.path(""))
+    ctx.file(".pydistutils.cfg", """[easy_install]
+allow_hosts = ''
+""")
+
+    # Set PYTHONPATH so that all extracted buildtime dependencies are available.
     root = str(ctx.path("../..")) + '/'
-    pythonpath = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
+    env["PYTHONPATH"] = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
+
     cmd = [
         "python",
         ctx.path(ctx.attr._piptool),
@@ -61,9 +82,9 @@ def _download_or_build_wheel_impl(ctx):
     ]
     cmd += ["--", ctx.attr.requirement]
     cmd += ctx.attr.pip_args
-    #cmd += ["--no-cache-dir"]
+    cmd += ["--no-cache-dir"]
     cmd += ["--no-deps"]
-    result = ctx.execute(cmd, quiet=False, environment={'PYTHONPATH': pythonpath})
+    result = ctx.execute(cmd, quiet=False, environment=env)
     if result.return_code:
         fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
     result = ctx.execute(["sh", "-c", "ls ./%s" % ctx.attr.wheel_name])
