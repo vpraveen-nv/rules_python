@@ -161,6 +161,11 @@ pip_import(
     additional_runtime_deps = {
         "scikit-learn": ["scipy", "numpy"],
     },
+    remove_runtime_deps = {
+        # https://github.com/keras-team/keras/issues/10505
+        "keras-applications": ["keras"],
+        "keras-preprocessing": ["keras"],
+    },
 )
 
 load(

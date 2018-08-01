@@ -4,6 +4,8 @@ _additional_buildtime_deps = {%{additional_buildtime_deps}
 }
 _additional_runtime_deps = {%{additional_runtime_deps}
 }
+_remove_runtime_deps = {%{remove_runtime_deps}
+}
 
 def _global_wheel(all_libs, key):
   return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
@@ -22,6 +24,7 @@ def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_r
 
     buildtime_deps = _additional_buildtime_deps.get(key, [])
     additional_runtime_deps = _additional_runtime_deps.get(key, [])
+    remove_runtime_deps = _remove_runtime_deps.get(key, [])
 
     if name not in native.existing_rules():
         if whl:
@@ -29,6 +32,7 @@ def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_r
                 name = name,
                 wheels = [whl],
                 additional_runtime_deps = additional_runtime_deps,
+                remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
             )
@@ -44,12 +48,14 @@ def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_r
                 name = name,
                 wheels = ["@%s//:%s" % (wheel_repo_name, wheel_name)],
                 additional_runtime_deps = additional_runtime_deps,
+                remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
             )
 
     if dirty_repo_name not in native.existing_rules():
-        dep_keys = [key] + [d.split("[")[0] for d in transitive_runtime_deps]
+        dep_keys = {d.split("[")[0]: None for d in transitive_runtime_deps}
+        dep_keys[key] = None
         if whl:
             wheels = ["@%s//:%s" % (repository, all_libs[key]["wheel_name"]) for key in dep_keys]
         else:
@@ -58,6 +64,7 @@ def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_r
             name = dirty_repo_name,
             wheels = wheels,
             additional_runtime_deps = additional_runtime_deps,
+            remove_runtime_deps = remove_runtime_deps,
             repository = repository,
             extras = extras,
         )

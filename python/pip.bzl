@@ -44,6 +44,7 @@ sh_binary(
       "%{requirements}": str(repository_ctx.attr.requirements_bzl),
       "%{additional_buildtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_buildtime_deps),
       "%{additional_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_runtime_deps),
+      "%{remove_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.remove_runtime_deps),
     })
 
   repository_ctx.template(
@@ -91,6 +92,7 @@ pip_import = repository_rule(
         "pip_args": attr.string_list(),
         "additional_buildtime_deps": attr.string_list_dict(),
         "additional_runtime_deps": attr.string_list_dict(),
+        "remove_runtime_deps": attr.string_list_dict(),
         "_script": attr.label(
             executable = True,
             default = Label("//tools:piptool.par"),

@@ -166,9 +166,8 @@ def extract(args):
   whls = [Wheel(w) for w in args.whl]
   whl = whls[0]
 
-  extra_deps = args.add_dependency
-  if not extra_deps:
-      extra_deps = []
+  extra_deps = args.add_dependency or []
+  drop_deps = {d: None for d in args.drop_dependency or []}
 
   # Extract the files into the current directory
   # TODO(conrado): do one expansion for each extra? It might be easier to create completely new
@@ -182,7 +181,7 @@ def extract(args):
       imports.append(purelib_path)
 
   wheel_map = {w.name(): w for w in whls}
-  external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in wheel_map]
+  external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in wheel_map and d not in drop_deps]
 
   with open(os.path.join(args.directory, 'BUILD'), 'w') as f:
     f.write("""
@@ -233,11 +232,14 @@ parser.set_defaults(func=extract)
 parser.add_argument('--whl', action='append', required=True,
                     help=('The .whl file we are expanding.'))
 
-parser.add_argument('--repository', action='store',  required=True,
+parser.add_argument('--repository', action='store', required=True,
                     help='The pip_import from which to draw dependencies.')
 
 parser.add_argument('--add-dependency', action='append',
                     help='Specify additional dependencies beyond the ones specified in the wheel.')
+
+parser.add_argument('--drop-dependency', action='append',
+                    help='Specify dependencies to ignore.')
 
 parser.add_argument('--directory', action='store', default='.',
                     help='The directory into which to expand things.')
@@ -339,11 +341,15 @@ def resolve(args):
     for whl in whls
   }
 
-  def transitive_deps(wheel, extra=None):
+  def transitive_deps(wheel, extra=None, collected=None):
     deps = wheel.dependencies(extra)
+    if collected is None:
+      collected = set()
     for dep in wheel.dependencies(extra):
-      d, extra = split_extra(dep)
-      deps = deps.union(transitive_deps(whl_map[d], extra))
+      if dep not in collected:
+        collected.add(dep)
+        d, extra = split_extra(dep)
+        deps = deps.union(transitive_deps(whl_map[d], extra, collected))
     return deps
 
   if args.output_format == 'download':
