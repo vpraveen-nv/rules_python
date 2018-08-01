@@ -28,5 +28,7 @@ py_test(
         requirement("pycuda"),
         #requirement("botocore"),
         requirement("pytest-mock"),
+        requirement("keras"),
+        requirement("tensorflow"),
     ],
 )

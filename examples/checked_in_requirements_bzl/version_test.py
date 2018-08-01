@@ -21,6 +21,9 @@ class VersionTest(unittest.TestCase):
   def test_version(self):
     self.assertEqual(pip.__version__, '9.0.0')
 
+import keras as k
+print(k)
+
 import google.auth as auth
 print(auth)
 
