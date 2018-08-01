@@ -319,6 +319,21 @@ def resolve(args):
   if pip_main(pip_args):
     sys.exit(1)
 
+  # Find all http/s URLs explicitly stated in the requirements.txt file - these
+  # URLs will be passed through to the bazel rules below to support wheels that
+  # are not in any index.
+  url_pattern = re.compile(r'(https?://\S+).*')
+  def get_url(line):
+    m = url_pattern.match(line)
+    return m.group(1) if m else None
+  with open(args.input) as f:
+    requirements_urls = [get_url(x) for x in f.readlines() if get_url(x)]
+  def requirement_download_url(wheel_name):
+    for url in requirements_urls:
+      if wheel_name in url:
+        return url
+    return None
+
   # Enumerate the .whl files we downloaded.
   def wheels_from_dir(dir):
     def list_whls(dir):
@@ -371,6 +386,9 @@ def resolve(args):
     attrs += [("name", quote(lib_repo(wheel)))]
     attrs += [("version", quote(wheel.version()))]
     attrs += [("wheel_name", quote(wheel.basename()))]
+    url = requirement_download_url(wheel.basename())
+    if url:
+      attrs += [("urls", '[{}]'.format(quote(url)))]
     if args.output_format != 'download':
       attrs += [("whl", '"@{}//:{}"'.format(args.name, wheel.basename()))]
     extras = ', '.join([quote(extra) for extra in possible_extras.get(wheel, [])])

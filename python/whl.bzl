@@ -37,9 +37,7 @@ def _extract_wheels(ctx, wheels):
     if result.return_code:
         fail("extract_wheels failed: %s (%s)" % (result.stdout, result.stderr))
 
-def _download_or_build_wheel_impl(ctx):
-    """Core implementation of whl_library."""
-
+def _build_wheel(ctx):
     env = {}
 
     # Resolve the paths to the dependency wheels to force them to be created.
@@ -88,6 +86,18 @@ allow_hosts = ''
     result = ctx.execute(cmd, quiet=False, environment=env)
     if result.return_code:
         fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
+
+def _download_or_build_wheel_impl(ctx):
+    """Core implementation of download_or_build_wheel."""
+
+    if ctx.attr.urls and ctx.attr.requirement:
+        fail("only one of urls and requirement should be specified")
+
+    if ctx.attr.urls:
+        ctx.download(url=ctx.attr.urls, output=ctx.attr.wheel_name)
+    else:
+        _build_wheel(ctx)
+
     result = ctx.execute(["sh", "-c", "ls ./%s" % ctx.attr.wheel_name])
     if result.return_code:
         fail("whl not found: %s (%s)" % (result.stdout, result.stderr))
@@ -96,6 +106,7 @@ allow_hosts = ''
 download_or_build_wheel = repository_rule(
     attrs = {
         "requirement": attr.string(),
+        "urls": attr.string_list(),
         "buildtime_deps": attr.label_list(
             allow_files=["*.whl"],
         ),

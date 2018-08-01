@@ -16,11 +16,11 @@ def _wheel(all_libs, key):
 def _extracted_wheel(all_libs, key):
   return "@%s//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
 
-def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_runtime_deps=[], runtime_deps=[], extras=[]):
+def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=None, transitive_runtime_deps=[], runtime_deps=[], extras=[]):
     repository = "%{repo}"
     dirty_repo_name = "%s_dirty" % name
     wheel_repo_name = "%s_wheel" % name
-    requirement = "%s==%s" % (key, version)
+    requirement = None if urls != None else "%s==%s" % (key, version)
 
     buildtime_deps = _additional_buildtime_deps.get(key, [])
     additional_runtime_deps = _additional_runtime_deps.get(key, [])
@@ -40,6 +40,7 @@ def whl_library(key, all_libs, name, version, wheel_name, whl=None, transitive_r
             download_or_build_wheel(
                 name = wheel_repo_name,
                 requirement = requirement,
+                urls = urls,
                 wheel_name = wheel_name,
                 buildtime_deps = [_extracted_wheel(all_libs, d) for d in buildtime_deps],
                 pip_args = [%{pip_args}],
