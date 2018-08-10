@@ -53,7 +53,7 @@ sh_binary(
     substitutions = {
       "%{piptool}": str(repository_ctx.path(repository_ctx.attr._script)),
       "%{name}": repository_ctx.attr.name,
-      "%{requirements_txt}": str(repository_ctx.path(repository_ctx.attr.requirements)),
+      "%{requirements_txt}": " ".join(["\"%s\"" % str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]),
       "%{requirements_bzl}": str(repository_ctx.path(repository_ctx.attr.requirements_bzl)) if repository_ctx.attr.requirements_bzl else "",
       "%{directory}": str(repository_ctx.path("")),
       "%{pip_args}": " ".join(["\"%s\"" % arg for arg in repository_ctx.attr.pip_args]),
@@ -67,10 +67,10 @@ sh_binary(
     cmd = [
         "python", repository_ctx.path(repository_ctx.attr._script), "resolve",
         "--name", repository_ctx.attr.name,
-        "--input", repository_ctx.path(repository_ctx.attr.requirements),
         "--output", repository_ctx.path("requirements.bzl"),
         "--directory", repository_ctx.path(""),
     ]
+    cmd += ["--input=" + str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]
     cmd += ["--"] + repository_ctx.attr.pip_args
     cmd += ["--no-cache-dir"]
     result = repository_ctx.execute(cmd, quiet=False)
@@ -80,10 +80,9 @@ sh_binary(
 
 pip_import = repository_rule(
     attrs = {
-        "requirements": attr.label(
+        "requirements": attr.label_list(
             allow_files = True,
             mandatory = True,
-            single_file = True,
         ),
         "requirements_bzl": attr.label(
             allow_files = True,

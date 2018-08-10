@@ -310,7 +310,7 @@ def resolve(args):
   if args.directory:
     pip_args += ["-w", args.directory]
   if args.input:
-    pip_args += ["-r", args.input]
+    pip_args += ["--requirement=" + i for i in args.input]
   if len(args.args) > 0 and args.args[0] == '--':
     pip_args += args.args[1:]
   else:
@@ -326,8 +326,10 @@ def resolve(args):
   def get_url(line):
     m = url_pattern.match(line)
     return m.group(1) if m else None
-  with open(args.input) as f:
-    requirements_urls = [get_url(x) for x in f.readlines() if get_url(x)]
+  requirements_urls = []
+  for inputfile in args.input:
+    with open(inputfile) as f:
+      requirements_urls += [get_url(x) for x in f.readlines() if get_url(x)]
   def requirement_download_url(wheel_name):
     for url in requirements_urls:
       if wheel_name in url:
@@ -425,7 +427,7 @@ def resolve(args):
     f.write("""\
 # Install pip requirements.
 #
-# Generated from {input}
+{comment}
 
 load("@{name}//python:whl.bzl", "whl_library")
 
@@ -453,7 +455,8 @@ def pip_install():
       **attributes
     )
 
-""".format(input=args.input, name=args.name,
+""".format(comment='\n'.join(['# Generated from ' + i for i in args.input]),
+           name=args.name,
            all_libs='\n    '.join(map(whl_library, whls)),
            requirements_map=requirements_map))
 
@@ -463,8 +466,8 @@ parser.set_defaults(func=resolve)
 parser.add_argument('--name', action='store', required=True,
                     help=('The namespace of the import.'))
 
-parser.add_argument('--input', action='store', required=True,
-                    help=('The requirements.txt file to import.'))
+parser.add_argument('--input', action='append', required=True,
+                    help=('The requirements.txt file(s) to import.'))
 
 parser.add_argument('--output', action='store', required=True,
                     help=('The requirements.bzl file to export.'))

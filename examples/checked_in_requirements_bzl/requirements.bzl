@@ -1,6 +1,7 @@
 # Install pip requirements.
 #
 # Generated from /home/lpeltonen/go/src/github.com/bazelbuild/rules_python/examples/checked_in_requirements_bzl/requirements.txt
+# Generated from /home/lpeltonen/go/src/github.com/bazelbuild/rules_python/examples/checked_in_requirements_bzl/requirements-2.txt
 
 load("@examples_checked_in_requirements_bzl//python:whl.bzl", "whl_library")
 
@@ -27,8 +28,8 @@ _requirements = {
   "backports.ssl-match-hostname:dirty": "@examples_checked_in_requirements_bzl__backports_ssl_match_hostname_3_5_0_1_dirty//:pkg",
   "backports.weakref": "@examples_checked_in_requirements_bzl__backports_weakref_1_0_post1//:pkg",
   "backports.weakref:dirty": "@examples_checked_in_requirements_bzl__backports_weakref_1_0_post1_dirty//:pkg",
-  "botocore": "@examples_checked_in_requirements_bzl__botocore_1_10_67//:pkg",
-  "botocore:dirty": "@examples_checked_in_requirements_bzl__botocore_1_10_67_dirty//:pkg",
+  "botocore": "@examples_checked_in_requirements_bzl__botocore_1_10_74//:pkg",
+  "botocore:dirty": "@examples_checked_in_requirements_bzl__botocore_1_10_74_dirty//:pkg",
   "cachetools": "@examples_checked_in_requirements_bzl__cachetools_2_1_0//:pkg",
   "cachetools:dirty": "@examples_checked_in_requirements_bzl__cachetools_2_1_0_dirty//:pkg",
   "certifi": "@examples_checked_in_requirements_bzl__certifi_2018_4_16//:pkg",
@@ -119,8 +120,8 @@ _requirements = {
   "googleapis-common-protos:dirty[grpc]": "@examples_checked_in_requirements_bzl__googleapis_common_protos_1_5_3_dirty//:grpc",
   "grpc-google-iam-v1": "@examples_checked_in_requirements_bzl__grpc_google_iam_v1_0_11_4//:pkg",
   "grpc-google-iam-v1:dirty": "@examples_checked_in_requirements_bzl__grpc_google_iam_v1_0_11_4_dirty//:pkg",
-  "grpcio": "@examples_checked_in_requirements_bzl__grpcio_1_13_0//:pkg",
-  "grpcio:dirty": "@examples_checked_in_requirements_bzl__grpcio_1_13_0_dirty//:pkg",
+  "grpcio": "@examples_checked_in_requirements_bzl__grpcio_1_14_1//:pkg",
+  "grpcio:dirty": "@examples_checked_in_requirements_bzl__grpcio_1_14_1_dirty//:pkg",
   "h5py": "@examples_checked_in_requirements_bzl__h5py_2_8_0//:pkg",
   "h5py:dirty": "@examples_checked_in_requirements_bzl__h5py_2_8_0_dirty//:pkg",
   "httplib2": "@examples_checked_in_requirements_bzl__httplib2_0_11_3//:pkg",
@@ -193,8 +194,8 @@ _requirements = {
   "pyasn1-modules:dirty": "@examples_checked_in_requirements_bzl__pyasn1_modules_0_2_2_dirty//:pkg",
   "pycuda": "@examples_checked_in_requirements_bzl__pycuda_2017_1_1//:pkg",
   "pycuda:dirty": "@examples_checked_in_requirements_bzl__pycuda_2017_1_1_dirty//:pkg",
-  "pytest": "@examples_checked_in_requirements_bzl__pytest_3_7_0//:pkg",
-  "pytest:dirty": "@examples_checked_in_requirements_bzl__pytest_3_7_0_dirty//:pkg",
+  "pytest": "@examples_checked_in_requirements_bzl__pytest_3_7_1//:pkg",
+  "pytest:dirty": "@examples_checked_in_requirements_bzl__pytest_3_7_1_dirty//:pkg",
   "pytest-mock": "@examples_checked_in_requirements_bzl__pytest_mock_1_6_2//:pkg",
   "pytest-mock:dirty": "@examples_checked_in_requirements_bzl__pytest_mock_1_6_2_dirty//:pkg",
   "python-dateutil": "@examples_checked_in_requirements_bzl__python_dateutil_2_7_3//:pkg",
@@ -209,8 +210,8 @@ _requirements = {
   "requests:dirty": "@examples_checked_in_requirements_bzl__requests_2_19_1_dirty//:pkg",
   "rsa": "@examples_checked_in_requirements_bzl__rsa_3_4_2//:pkg",
   "rsa:dirty": "@examples_checked_in_requirements_bzl__rsa_3_4_2_dirty//:pkg",
-  "scandir": "@examples_checked_in_requirements_bzl__scandir_1_7//:pkg",
-  "scandir:dirty": "@examples_checked_in_requirements_bzl__scandir_1_7_dirty//:pkg",
+  "scandir": "@examples_checked_in_requirements_bzl__scandir_1_8//:pkg",
+  "scandir:dirty": "@examples_checked_in_requirements_bzl__scandir_1_8_dirty//:pkg",
   "scikit-learn": "@examples_checked_in_requirements_bzl__scikit_learn_0_17_1//:pkg",
   "scikit-learn:dirty": "@examples_checked_in_requirements_bzl__scikit_learn_0_17_1_dirty//:pkg",
   "scipy": "@examples_checked_in_requirements_bzl__scipy_0_17_1//:pkg",
@@ -300,9 +301,9 @@ def pip_install():
       "wheel_name": "backports.weakref-1.0.post1-py2.py3-none-any.whl",
     },
     "botocore": {
-      "name": "examples_checked_in_requirements_bzl__botocore_1_10_67",
-      "version": "1.10.67",
-      "wheel_name": "botocore-1.10.67-py2.py3-none-any.whl",
+      "name": "examples_checked_in_requirements_bzl__botocore_1_10_74",
+      "version": "1.10.74",
+      "wheel_name": "botocore-1.10.74-py2.py3-none-any.whl",
       "transitive_runtime_deps": ["python-dateutil", "docutils", "jmespath", "six"],
     },
     "cachetools": {
@@ -371,7 +372,7 @@ def pip_install():
       "name": "examples_checked_in_requirements_bzl__gapic_google_cloud_logging_v2_0_91_3",
       "version": "0.91.3",
       "wheel_name": "gapic_google_cloud_logging_v2-0.91.3-py2-none-any.whl",
-      "transitive_runtime_deps": ["dill", "googleapis-common-protos", "grpcio", "oauth2client", "google-auth", "six", "proto-google-cloud-logging-v2", "certifi", "protobuf", "urllib3", "rsa", "ply", "google-gax", "httplib2", "pyasn1-modules", "enum34", "pyasn1", "futures", "cachetools", "future", "chardet", "setuptools", "requests", "idna"],
+      "transitive_runtime_deps": ["dill", "googleapis-common-protos", "grpcio", "oauth2client", "google-auth", "six", "proto-google-cloud-logging-v2", "certifi", "protobuf", "urllib3", "rsa", "ply", "google-gax", "httplib2", "pyasn1-modules", "enum34", "idna", "futures", "cachetools", "future", "chardet", "setuptools", "requests", "pyasn1"],
     },
     "gast": {
       "name": "examples_checked_in_requirements_bzl__gast_0_2_0",
@@ -450,7 +451,7 @@ def pip_install():
       "name": "examples_checked_in_requirements_bzl__google_cloud_logging_1_4_0",
       "version": "1.4.0",
       "wheel_name": "google_cloud_logging-1.4.0-py2.py3-none-any.whl",
-      "transitive_runtime_deps": ["dill", "googleapis-common-protos", "grpcio", "oauth2client", "google-auth", "six", "google-api-core", "proto-google-cloud-logging-v2", "certifi", "gapic-google-cloud-logging-v2", "protobuf", "urllib3", "rsa", "ply", "pytz", "google-gax", "google-cloud-core", "pyasn1-modules", "enum34", "pyasn1", "futures", "cachetools", "future", "chardet", "setuptools", "requests", "idna", "httplib2"],
+      "transitive_runtime_deps": ["dill", "googleapis-common-protos", "grpcio", "oauth2client", "google-auth", "six", "google-api-core", "proto-google-cloud-logging-v2", "certifi", "gapic-google-cloud-logging-v2", "protobuf", "urllib3", "rsa", "ply", "pytz", "google-gax", "google-cloud-core", "pyasn1-modules", "enum34", "idna", "futures", "cachetools", "future", "chardet", "setuptools", "requests", "pyasn1", "httplib2"],
     },
     "google-cloud-monitoring": {
       "name": "examples_checked_in_requirements_bzl__google_cloud_monitoring_0_28_1",
@@ -542,12 +543,12 @@ def pip_install():
       "name": "examples_checked_in_requirements_bzl__grpc_google_iam_v1_0_11_4",
       "version": "0.11.4",
       "wheel_name": "grpc_google_iam_v1-0.11.4-py2-none-any.whl",
-      "transitive_runtime_deps": ["enum34", "futures", "googleapis-common-protos", "six", "grpcio"],
+      "transitive_runtime_deps": ["enum34", "six", "googleapis-common-protos", "grpcio", "futures"],
     },
     "grpcio": {
-      "name": "examples_checked_in_requirements_bzl__grpcio_1_13_0",
-      "version": "1.13.0",
-      "wheel_name": "grpcio-1.13.0-cp27-cp27mu-manylinux1_x86_64.whl",
+      "name": "examples_checked_in_requirements_bzl__grpcio_1_14_1",
+      "version": "1.14.1",
+      "wheel_name": "grpcio-1.14.1-cp27-cp27mu-manylinux1_x86_64.whl",
       "transitive_runtime_deps": ["enum34", "six", "futures"],
     },
     "h5py": {
@@ -710,12 +711,12 @@ def pip_install():
       "name": "examples_checked_in_requirements_bzl__pycuda_2017_1_1",
       "version": "2017.1.1",
       "wheel_name": "pycuda-2017.1.1-cp27-cp27mu-linux_x86_64.whl",
-      "transitive_runtime_deps": ["mako", "more-itertools", "six", "pathlib2", "attrs", "pytools", "py", "markupsafe", "pytest", "decorator", "setuptools", "funcsigs", "appdirs", "scandir", "numpy", "pluggy", "atomicwrites"],
+      "transitive_runtime_deps": ["mako", "more-itertools", "six", "pathlib2", "attrs", "pytools", "py", "markupsafe", "pytest", "appdirs", "setuptools", "funcsigs", "scandir", "numpy", "decorator", "pluggy", "atomicwrites"],
     },
     "pytest": {
-      "name": "examples_checked_in_requirements_bzl__pytest_3_7_0",
-      "version": "3.7.0",
-      "wheel_name": "pytest-3.7.0-py2.py3-none-any.whl",
+      "name": "examples_checked_in_requirements_bzl__pytest_3_7_1",
+      "version": "3.7.1",
+      "wheel_name": "pytest-3.7.1-py2.py3-none-any.whl",
       "transitive_runtime_deps": ["more-itertools", "py", "pathlib2", "six", "attrs", "setuptools", "funcsigs", "atomicwrites", "pluggy", "scandir"],
     },
     "pytest-mock": {
@@ -734,7 +735,7 @@ def pip_install():
       "name": "examples_checked_in_requirements_bzl__pytools_2018_5_2",
       "version": "2018.5.2",
       "wheel_name": "pytools-2018.5.2-py2.py3-none-any.whl",
-      "transitive_runtime_deps": ["six", "numpy", "appdirs", "decorator"],
+      "transitive_runtime_deps": ["six", "numpy", "decorator", "appdirs"],
     },
     "pytz": {
       "name": "examples_checked_in_requirements_bzl__pytz_2018_5",
@@ -759,9 +760,9 @@ def pip_install():
       "transitive_runtime_deps": ["pyasn1"],
     },
     "scandir": {
-      "name": "examples_checked_in_requirements_bzl__scandir_1_7",
-      "version": "1.7",
-      "wheel_name": "scandir-1.7-cp27-cp27mu-linux_x86_64.whl",
+      "name": "examples_checked_in_requirements_bzl__scandir_1_8",
+      "version": "1.8",
+      "wheel_name": "scandir-1.8-cp27-cp27mu-linux_x86_64.whl",
     },
     "scikit-learn": {
       "name": "examples_checked_in_requirements_bzl__scikit_learn_0_17_1",

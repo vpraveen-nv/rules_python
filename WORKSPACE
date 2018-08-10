@@ -39,7 +39,7 @@ load("//python:pip.bzl", "pip_import")
 
 pip_import(
     name = "piptool_deps",
-    requirements = "//python:requirements.txt",
+    requirements = ["//python:requirements.txt"],
 )
 
 load(
@@ -104,7 +104,7 @@ http_file(
 # Imports for examples
 pip_import(
     name = "examples_helloworld",
-    requirements = "//examples/helloworld:requirements.txt",
+    requirements = ["//examples/helloworld:requirements.txt"],
 )
 
 load(
@@ -116,7 +116,7 @@ _helloworld_install()
 
 pip_import(
     name = "examples_version",
-    requirements = "//examples/version:requirements.txt",
+    requirements = ["//examples/version:requirements.txt"],
 )
 
 load(
@@ -128,7 +128,7 @@ _version_install()
 
 pip_import(
     name = "examples_boto",
-    requirements = "//examples/boto:requirements.txt",
+    requirements = ["//examples/boto:requirements.txt"],
 )
 
 load(
@@ -140,7 +140,7 @@ _boto_install()
 
 pip_import(
     name = "examples_extras",
-    requirements = "//examples/extras:requirements.txt",
+    requirements = ["//examples/extras:requirements.txt"],
 )
 
 load(
@@ -152,7 +152,10 @@ _extras_install()
 
 pip_import(
     name = "examples_checked_in_requirements_bzl",
-    requirements = "//examples/checked_in_requirements_bzl:requirements.txt",
+    requirements = [
+        "//examples/checked_in_requirements_bzl:requirements.txt",
+        "//examples/checked_in_requirements_bzl:requirements-2.txt",
+    ],
     requirements_bzl = "//examples/checked_in_requirements_bzl:requirements.bzl",
     additional_buildtime_deps = {
         "pycuda": ["numpy"],
