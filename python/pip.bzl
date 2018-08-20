@@ -72,7 +72,7 @@ sh_binary(
     ]
     cmd += ["--input=" + str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]
     cmd += ["--"] + repository_ctx.attr.pip_args
-    cmd += ["--no-cache-dir"]
+    cmd += ["--cache-dir", repository_ctx.path("pip-cache")]
     result = repository_ctx.execute(cmd, quiet=False)
 
     if result.return_code:
