@@ -51,7 +51,7 @@ def _build_wheel(ctx):
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
     hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
-    cmd = ["python", "-c", "import hashlib; print(hashlib.sha256('%s').hexdigest())" % hash_input]
+    cmd = ["python", "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
         fail("failed to compute checksum: %s (%s)" % (result.stdout, result.stderr))
