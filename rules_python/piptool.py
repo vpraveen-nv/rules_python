@@ -183,6 +183,13 @@ def extract(args):
   wheel_map = {w.name(): w for w in whls}
   external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in wheel_map and d not in drop_deps]
 
+  contents = []
+  add_build_content = args.add_build_content or []
+  for name in add_build_content:
+      with open(name) as f:
+          contents.append(f.read() + '\n')
+  contents = '\n'.join(contents)
+
   with open(os.path.join(args.directory, 'BUILD'), 'w') as f:
     f.write("""
 package(default_visibility = ["//visibility:public"])
@@ -204,7 +211,8 @@ py_library(
         {dependencies}
     ],
 )
-{extras}""".format(
+{extras}
+{contents}""".format(
   wheel = whl.basename(),
   repository=args.repository,
   dependencies=''.join([
@@ -224,7 +232,8 @@ py_library(
                 for dep in whl.dependencies(extra)
             ]))
     for extra in args.extras or []
-  ])))
+  ]),
+  contents=contents))
 
 parser = subparsers.add_parser('extract', help='Extract one or more wheels as a py_library')
 parser.set_defaults(func=extract)
@@ -240,6 +249,9 @@ parser.add_argument('--add-dependency', action='append',
 
 parser.add_argument('--drop-dependency', action='append',
                     help='Specify dependencies to ignore.')
+
+parser.add_argument('--add-build-content', action='append',
+                    help='Specify lines to add to the BUILD file.')
 
 parser.add_argument('--directory', action='store', default='.',
                     help='The directory into which to expand things.')
@@ -399,7 +411,7 @@ def resolve(args):
     runtime_deps = ', '.join([quote(dep) for dep in wheel.dependencies()])
     #if runtime_deps != '':
     #  attrs["runtime_deps"] = '[{}]'.format(runtime_deps)
-    transitive_runtime_deps = set([split_extra(dep)[0] for dep in transitive_deps(wheel)])
+    transitive_runtime_deps = sorted(list(set([split_extra(dep)[0] for dep in transitive_deps(wheel)])))
     transitive_runtime_deps = ', '.join([quote(dep) for dep in transitive_runtime_deps])
     if transitive_runtime_deps != '':
       attrs += [("transitive_runtime_deps", '[{}]'.format(transitive_runtime_deps))]
@@ -436,6 +448,9 @@ _requirements = {{
 }}
 
 all_requirements = _requirements.values()
+
+def requirement_repo(name):
+  return requirement(name).split(":")[0]
 
 def requirement(name):
   key = name.lower()

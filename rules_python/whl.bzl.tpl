@@ -4,6 +4,8 @@ _additional_buildtime_deps = {%{additional_buildtime_deps}
 }
 _additional_runtime_deps = {%{additional_runtime_deps}
 }
+_additional_build_content = {%{additional_build_content}
+}
 _remove_runtime_deps = {%{remove_runtime_deps}
 }
 
@@ -24,6 +26,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
 
     buildtime_deps = _additional_buildtime_deps.get(key, [])
     additional_runtime_deps = _additional_runtime_deps.get(key, [])
+    additional_build_content = _additional_build_content.get(key, None)
     remove_runtime_deps = _remove_runtime_deps.get(key, [])
 
     if name not in native.existing_rules():
@@ -32,6 +35,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 name = name,
                 wheels = [whl],
                 additional_runtime_deps = additional_runtime_deps,
+                additional_build_content = additional_build_content,
                 remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
@@ -49,6 +53,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 name = name,
                 wheels = ["@%s//:%s" % (wheel_repo_name, wheel_name)],
                 additional_runtime_deps = additional_runtime_deps,
+                additional_build_content = additional_build_content,
                 remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
@@ -65,6 +70,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
             name = dirty_repo_name,
             wheels = wheels,
             additional_runtime_deps = additional_runtime_deps,
+            additional_build_content = additional_build_content,
             remove_runtime_deps = remove_runtime_deps,
             repository = repository,
             extras = extras,

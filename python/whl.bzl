@@ -31,6 +31,8 @@ def _extract_wheels(ctx, wheels):
     args += ["--whl=%s" % w for w in wheels]
     args += ["--add-dependency=%s" % d for d in ctx.attr.additional_runtime_deps]
     args += ["--drop-dependency=%s" % d for d in ctx.attr.remove_runtime_deps]
+    if ctx.attr.additional_build_content:
+        args += ["--add-build-content=%s" % ctx.path(ctx.attr.additional_build_content)]
     args += ["--extras=%s" % extra for extra in ctx.attr.extras]
 
     result = ctx.execute(args, quiet=False)
@@ -135,6 +137,7 @@ extract_wheels = repository_rule(
             allow_files = True,
         ),
         "additional_runtime_deps": attr.string_list(),
+        "additional_build_content":  attr.label(allow_single_file=True),
         "remove_runtime_deps": attr.string_list(),
         "repository":  attr.string(),
         "extras": attr.string_list(),
