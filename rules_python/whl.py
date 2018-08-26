@@ -133,6 +133,20 @@ class Wheel(object):
     with zipfile.ZipFile(self.path(), 'r') as whl:
       whl.extractall(directory)
 
+    # Fix puredata structure
+    purelib_path = os.path.join(directory, '%s-%s.data' % (self.distribution(), self.version()), 'purelib')
+    if os.path.isdir(purelib_path):
+        for _, subdirs, _ in os.walk(purelib_path):
+            for s in subdirs:
+                os.symlink(os.path.join(purelib_path, s), os.path.join(directory, s))
+            break
+
+    # Add empty init files where needed
+    for current_dir, _, filelist in os.walk(directory):
+        if current_dir != directory and '__init__.py' not in filelist:
+            with open(os.path.join(current_dir, '__init__.py'), 'w') as f:
+                pass
+
   # _parse_metadata parses METADATA files according to https://www.python.org/dev/peps/pep-0314/
   def _parse_metadata(self, content):
     name_pattern = re.compile('Name: (.*)')

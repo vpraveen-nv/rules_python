@@ -177,9 +177,6 @@ def extract(args):
     w.expand(args.directory)
 
   imports = ['.']
-  purelib_path = os.path.join('%s-%s.data' % (whl.distribution(), whl.version()), 'purelib')
-  if os.path.isdir(os.path.join(args.directory, purelib_path)):
-      imports.append(purelib_path)
 
   wheel_map = {w.name(): w for w in whls}
   external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in wheel_map and d not in drop_deps]
