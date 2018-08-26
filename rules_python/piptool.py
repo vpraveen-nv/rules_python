@@ -332,8 +332,6 @@ def build_dep_graph(args):
     if not args.build_dep:
         return [requirements.values()]
 
-    print(requirements)
-
     deps = {}
     for i in args.build_dep:
         k,v = i.split('=')
@@ -343,8 +341,6 @@ def build_dep_graph(args):
             deps[k] = []
         deps[k].append(requirements[v])
 
-    print(deps)
-
     graph = {r: set(deps[n]) if n in deps else set() for n,r in requirements.items()}
     result = list(toposort.toposort(graph))
     return result
@@ -352,26 +348,54 @@ def build_dep_graph(args):
 def resolve(args):
   ordering = build_dep_graph(args)
 
-  for o in ordering:
-      print(o)
+  tempdir = tempfile.mkdtemp()
+
+  existing_pythonpath = os.environ.get('PYTHONPATH', '')
+  os.environ['PYTHONPATH'] = tempdir + ':' + existing_pythonpath
+
+  for i, o in enumerate(ordering):
+      # Install the wheels since they can be dependent at build time
+      for _, _, filelist in os.walk(args.directory):
+          filelist = [f for f in filelist if f.endswith('.whl')]
+          filelist = [os.path.join(args.directory, f) for f in filelist]
+          if filelist:
+            pip_args = ["install", "-q", "--upgrade", "-t", tempdir] + filelist
+            if pip_main(pip_args):
+              shutil.rmtree(tempdir)
+              sys.exit(1)
+
+      # Fake init files for the degenerate packages
+      for dirname, _, filelist in os.walk(tempdir):
+          if '__init__.py' not in filelist:
+              with open(os.path.join(dirname, '__init__.py'), 'w') as f:
+                  pass
+
       with tempfile.NamedTemporaryFile() as f:
-          f.write('\n'.join(o))
-          f.flush()
-          pip_args = ["wheel"]
-          #pip_args += ["--cache-dir", cache_dir]
-          if args.directory:
-            pip_args += ["-w", args.directory]
-          #if args.input:
-          #  pip_args += ["--requirement=" + i for i in args.input]
-          pip_args += ["--requirement=" + f.name]
-          if len(args.args) > 0 and args.args[0] == '--':
-            pip_args += args.args[1:]
-          else:
-            pip_args += args.args
-          # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-          print(pip_args)
-          if pip_main(pip_args):
-            sys.exit(1)
+          with tempfile.NamedTemporaryFile() as f2:
+              f.write('\n'.join(o))
+              f.flush()
+
+              f2.write('\n'.join(['\n'.join(c) for c in ordering[:i]]))
+              f2.flush()
+
+              pip_args = ["wheel"]
+              #pip_args += ["--cache-dir", cache_dir]
+              if args.directory:
+                pip_args += ["-w", args.directory]
+              #if args.input:
+              #  pip_args += ["--requirement=" + i for i in args.input]
+              pip_args += ["--requirement=" + f.name]
+              pip_args += ["--constraint=" + f2.name]
+              if len(args.args) > 0 and args.args[0] == '--':
+                pip_args += args.args[1:]
+              else:
+                pip_args += args.args
+              # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
+              if pip_main(pip_args):
+                shutil.rmtree(tempdir)
+                sys.exit(1)
+
+  shutil.rmtree(tempdir)
 
   # Find all http/s URLs explicitly stated in the requirements.txt file - these
   # URLs will be passed through to the bazel rules below to support wheels that
