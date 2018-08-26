@@ -25,6 +25,7 @@ import requests
 import shutil
 import sys
 import tempfile
+import toposort
 import zipfile
 
 # Note: We carefully import the following modules in a particular
@@ -316,20 +317,61 @@ def determine_possible_extras(whls):
     for whl in whls
   }
 
+def build_dep_graph(args):
+    pattern = re.compile('[a-zA-Z0-9_-]+')
+
+    requirements = {}
+    for i in args.input:
+        with open(i) as f:
+            for l in f.readlines():
+                l = l.strip()
+                m = pattern.match(l)
+                if m:
+                    requirements[m.group()] = l
+
+    if not args.build_dep:
+        return [requirements.values()]
+
+    print(requirements)
+
+    deps = {}
+    for i in args.build_dep:
+        k,v = i.split('=')
+        if k not in requirements:
+            continue
+        if k not in deps:
+            deps[k] = []
+        deps[k].append(requirements[v])
+
+    print(deps)
+
+    graph = {r: set(deps[n]) if n in deps else set() for n,r in requirements.items()}
+    result = list(toposort.toposort(graph))
+    return result
+
 def resolve(args):
-  pip_args = ["wheel"]
-  #pip_args += ["--cache-dir", cache_dir]
-  if args.directory:
-    pip_args += ["-w", args.directory]
-  if args.input:
-    pip_args += ["--requirement=" + i for i in args.input]
-  if len(args.args) > 0 and args.args[0] == '--':
-    pip_args += args.args[1:]
-  else:
-    pip_args += args.args
-  # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-  if pip_main(pip_args):
-    sys.exit(1)
+  ordering = build_dep_graph(args)
+
+  for o in ordering:
+      print(o)
+      with tempfile.NamedTemporaryFile() as f:
+          f.write('\n'.join(o))
+          f.flush()
+          pip_args = ["wheel"]
+          #pip_args += ["--cache-dir", cache_dir]
+          if args.directory:
+            pip_args += ["-w", args.directory]
+          #if args.input:
+          #  pip_args += ["--requirement=" + i for i in args.input]
+          pip_args += ["--requirement=" + f.name]
+          if len(args.args) > 0 and args.args[0] == '--':
+            pip_args += args.args[1:]
+          else:
+            pip_args += args.args
+          # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
+          print(pip_args)
+          if pip_main(pip_args):
+            sys.exit(1)
 
   # Find all http/s URLs explicitly stated in the requirements.txt file - these
   # URLs will be passed through to the bazel rules below to support wheels that
@@ -480,6 +522,9 @@ parser.set_defaults(func=resolve)
 
 parser.add_argument('--name', action='store', required=True,
                     help=('The namespace of the import.'))
+
+parser.add_argument('--build-dep', action='append',
+                    help=('Build-time dependency of wheels.'))
 
 parser.add_argument('--input', action='append', required=True,
                     help=('The requirements.txt file(s) to import.'))

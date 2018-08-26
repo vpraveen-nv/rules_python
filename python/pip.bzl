@@ -57,6 +57,7 @@ sh_binary(
     substitutions = {
       "%{piptool}": str(repository_ctx.path(repository_ctx.attr._script)),
       "%{name}": repository_ctx.attr.name,
+      "%{build_dependencies}": " ".join(['%s=%s' % (k, vv) for k,v in repository_ctx.attr.additional_buildtime_deps.items() for vv in v]),
       "%{requirements_txt}": " ".join(["\"%s\"" % str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]),
       "%{requirements_bzl}": str(repository_ctx.path(repository_ctx.attr.requirements_bzl)) if repository_ctx.attr.requirements_bzl else "",
       "%{directory}": str(repository_ctx.path("")),
