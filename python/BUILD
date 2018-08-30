@@ -19,4 +19,5 @@ exports_files([
     "pip.bzl",
     "python.bzl",
     "whl.bzl",
+    "__init__.py",
 ])

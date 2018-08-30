@@ -175,6 +175,10 @@ def extract(args):
   for w in whls:
     w.expand(args.directory)
 
+  for root, dirs, files in os.walk(args.directory):
+    if root != args.directory and '__init__.py' not in files:
+      open(os.path.join(root, '__init__.py'), 'a').close()
+
   imports = ['.']
   purelib_path = os.path.join('%s-%s.data' % (whl.distribution(), whl.version()), 'purelib')
   if os.path.isdir(os.path.join(args.directory, purelib_path)):
