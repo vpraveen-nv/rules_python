@@ -16,7 +16,7 @@ def _wheel(all_libs, key):
 def _extracted_wheel(all_libs, key):
   return "@%s//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
 
-def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=None, transitive_runtime_deps=[], runtime_deps=[], extras=[]):
+def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=None, transitive_runtime_deps=[], runtime_deps=[], extras=[], python=None):
     repository = "%{repo}"
     dirty_repo_name = "%s_dirty" % name
     wheel_repo_name = "%s_wheel" % name
@@ -35,6 +35,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
+                python = python,
             )
         else:
             download_or_build_wheel(
@@ -44,6 +45,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 wheel_name = wheel_name,
                 buildtime_deps = [_extracted_wheel(all_libs, d) for d in buildtime_deps],
                 pip_args = [%{pip_args}],
+                python = python,
             )
             extract_wheels(
                 name = name,
@@ -52,6 +54,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 remove_runtime_deps = remove_runtime_deps,
                 repository = repository,
                 extras = extras,
+                python = python,
             )
 
     if dirty_repo_name not in native.existing_rules():
@@ -68,4 +71,5 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
             remove_runtime_deps = remove_runtime_deps,
             repository = repository,
             extras = extras,
+            python = python,
         )

@@ -9,12 +9,13 @@ PIP_CACHE="%{directory}/pip-cache"
 REQUIREMENTS_BZL_TEMP="requirements.bzl.tmp"
 echo "Generating $REQUIREMENTS_BZL from ${REQUIREMENTS_TXT[@]}..."
 
-python "%{piptool}" resolve \
+"%{python}" "%{piptool}" resolve \
     --name "%{name}" \
     "${REQUIREMENTS_TXT[@]/#/--input=}" \
     --output "$REQUIREMENTS_BZL_TEMP" \
     --output-format download \
     --directory $BUILD_AREA \
+    --python "%{python_label}" \
     -- %{pip_args} \
     --cache-dir "$PIP_CACHE" \
     "$@"

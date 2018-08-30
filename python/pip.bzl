@@ -51,6 +51,8 @@ sh_binary(
     "update.sh",
     Label("//rules_python:update.sh.tpl"),
     substitutions = {
+      "%{python}": str(repository_ctx.path(repository_ctx.attr.python)) if repository_ctx.attr.python else "python",
+      "%{python_label}": str(repository_ctx.attr.python) if repository_ctx.attr.python else "",
       "%{piptool}": str(repository_ctx.path(repository_ctx.attr._script)),
       "%{name}": repository_ctx.attr.name,
       "%{requirements_txt}": " ".join(["\"%s\"" % str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]),
@@ -92,6 +94,10 @@ pip_import = repository_rule(
         "additional_buildtime_deps": attr.string_list_dict(),
         "additional_runtime_deps": attr.string_list_dict(),
         "remove_runtime_deps": attr.string_list_dict(),
+        "python": attr.label(
+            executable = True,
+            cfg = "host",
+        ),
         "_script": attr.label(
             executable = True,
             default = Label("//tools:piptool.par"),

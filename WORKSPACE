@@ -34,6 +34,13 @@ load("@io_bazel_skydoc//skylark:skylark.bzl", "skydoc_repositories")
 
 skydoc_repositories()
 
+# Python
+load("//:python/def.bzl", "python_toolchain_repository")
+python_toolchain_repository(
+    name = "python2",
+    path = "/usr/bin/python2",
+)
+
 # Requirements for building our piptool.
 load("//python:pip.bzl", "pip_import")
 
@@ -169,6 +176,7 @@ pip_import(
         "keras-applications": ["keras"],
         "keras-preprocessing": ["keras"],
     },
+    python = "@python2//:bin/python",
 )
 
 load(

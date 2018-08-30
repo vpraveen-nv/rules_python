@@ -20,8 +20,9 @@ load(
 )
 
 def _extract_wheels(ctx, wheels):
+    python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
     args = [
-        "python",
+        python,
         ctx.path(ctx.attr._piptool),
         "extract",
         "--directory", str(ctx.path("")),
@@ -51,7 +52,8 @@ def _build_wheel(ctx):
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
     hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
-    cmd = ["python", "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
+    python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
+    cmd = [python, "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
         fail("failed to compute checksum: %s (%s)" % (result.stdout, result.stderr))
@@ -73,7 +75,7 @@ allow_hosts = ''
     env["PYTHONPATH"] = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
 
     cmd = [
-        "python",
+        python,
         ctx.path(ctx.attr._piptool),
         "build",
         "--directory", ctx.path(""),
@@ -112,6 +114,10 @@ download_or_build_wheel = repository_rule(
         ),
         "wheel_name": attr.string(),
         "pip_args": attr.string_list(),
+        "python": attr.label(
+            executable = True,
+            cfg = "host",
+        ),
         "_piptool": attr.label(
             executable = True,
             default = Label("//tools:piptool.par"),
@@ -138,6 +144,10 @@ extract_wheels = repository_rule(
         "remove_runtime_deps": attr.string_list(),
         "repository":  attr.string(),
         "extras": attr.string_list(),
+        "python": attr.label(
+            executable = True,
+            cfg = "host",
+        ),
         "_piptool": attr.label(
             executable = True,
             default = Label("//tools:piptool.par"),

@@ -397,14 +397,14 @@ def resolve(args):
       attrs += [("urls", '[{}]'.format(quote(url)))]
     if args.output_format != 'download':
       attrs += [("whl", '"@{}//:{}"'.format(args.name, wheel.basename()))]
-    extras = ', '.join([quote(extra) for extra in possible_extras.get(wheel, [])])
+    extras = ', '.join([quote(extra) for extra in sorted(possible_extras.get(wheel, []))])
     if extras != '':
       attrs += [("extras", '[{}]'.format(extras))]
     runtime_deps = ', '.join([quote(dep) for dep in wheel.dependencies()])
     #if runtime_deps != '':
     #  attrs["runtime_deps"] = '[{}]'.format(runtime_deps)
     transitive_runtime_deps = set([split_extra(dep)[0] for dep in transitive_deps(wheel)])
-    transitive_runtime_deps = ', '.join([quote(dep) for dep in transitive_runtime_deps])
+    transitive_runtime_deps = ', '.join([quote(dep) for dep in sorted(transitive_runtime_deps)])
     if transitive_runtime_deps != '':
       attrs += [("transitive_runtime_deps", '[{}]'.format(transitive_runtime_deps))]
 
@@ -422,7 +422,7 @@ def resolve(args):
       # For every extra that is possible from this requirements.txt
       '"{name}[{extra_lower}]": "@{repo}//:{extra}",\n  "{name}:dirty[{extra_lower}]": "@{repo}_dirty//:{extra}"'.format(
         name=whl.name(), repo=lib_repo(whl), extra=extra, extra_lower=extra.lower())
-      for extra in possible_extras.get(whl, [])
+      for extra in sorted(possible_extras.get(whl, []))
     ])
     for whl in whls
   ])
@@ -455,14 +455,15 @@ def pip_install():
   for key, attributes in all_libs.items():
     whl_library(
       key = key,
-      all_libs = all_libs,
+      all_libs = all_libs,{python}
       **attributes
     )
 
 """.format(comment='\n'.join(['# Generated from ' + i for i in args.input]),
            name=args.name,
            all_libs='\n    '.join(map(whl_library, whls)),
-           requirements_map=requirements_map))
+           requirements_map=requirements_map,
+           python='\n      python = "{}",'.format(args.python) if args.python else ''))
 
 parser = subparsers.add_parser('resolve', help='Resolve requirements.bzl from requirements.txt')
 parser.set_defaults(func=resolve)
@@ -481,6 +482,9 @@ parser.add_argument('--output-format', choices=['refer', 'download'], default='r
 
 parser.add_argument('--directory', action='store', default='.',
                     help=('The directory into which to put .whl files.'))
+
+parser.add_argument('--python', action='store',
+                    help=('The python interpreter to use for building wheels.'))
 
 parser.add_argument('args', nargs=argparse.REMAINDER,
                     help=('Extra arguments to send to pip.'))

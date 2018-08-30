@@ -831,6 +831,7 @@ def pip_install():
     whl_library(
       key = key,
       all_libs = all_libs,
+      python = "@python2//:bin/python",
       **attributes
     )
 
