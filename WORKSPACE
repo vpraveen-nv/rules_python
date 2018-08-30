@@ -173,8 +173,9 @@ pip_import(
     },
     remove_runtime_deps = {
         # https://github.com/keras-team/keras/issues/10505
-        "keras-applications": ["keras"],
-        "keras-preprocessing": ["keras"],
+        "keras-applications": ["keras", "keras-applications"],
+        "keras-preprocessing": ["keras", "keras-preprocessing"],
+        "keras": ["keras"],
     },
     python = "@python2//:bin/python",
 )

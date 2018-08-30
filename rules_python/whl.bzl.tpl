@@ -58,12 +58,17 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
             )
 
     if dirty_repo_name not in native.existing_rules():
-        dep_keys = {d.split("[")[0]: None for d in transitive_runtime_deps}
-        dep_keys[key] = None
+        # Make sure the current package's wheel is the first element in the "wheels" list,
+        # since piptool will generate the BUILD file based on that.  The remaining wheels
+        # on the list should be all transitive runtime dependencies (unless explicitly
+        # dropped at pip_import rule level).
+        dep_keys = {d.split("[")[0]: None for d in transitive_runtime_deps if d not in remove_runtime_deps}
         if whl:
-            wheels = ["@%s//:%s" % (repository, all_libs[key]["wheel_name"]) for key in dep_keys]
+            wheels = ["@%s//:%s" % (repository, all_libs[key]["wheel_name"])] + \
+                     ["@%s//:%s" % (repository, all_libs[key]["wheel_name"]) for key in dep_keys]
         else:
-            wheels = [_wheel(all_libs, d) for d in dep_keys]
+            wheels = [_wheel(all_libs, key)] + \
+                     [_wheel(all_libs, d) for d in dep_keys]
         extract_wheels(
             name = dirty_repo_name,
             wheels = wheels,
