@@ -40,6 +40,7 @@ def _extract_wheels(ctx, wheels):
 
 def _build_wheel(ctx):
     env = {}
+    python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
 
     # Resolve the paths to the dependency wheels to force them to be created.
     # This may cause re-starting this repository rule, see:
@@ -48,11 +49,21 @@ def _build_wheel(ctx):
     # wheel has been extracted (see below).
     paths = [ctx.path(d) for d in ctx.attr.buildtime_deps]
 
+    # Check that python headers are installed. Otherwise some wheels may be built
+    # differently depending on the machine..
+    result = ctx.execute(["/bin/sh", "-c", "\n".join([
+        "INCLUDEPY=$(%s -c \"import sysconfig; print(sysconfig.get_config_vars()['INCLUDEPY'])\")" % python,
+        "ls \"$INCLUDEPY/Python.h\""
+    ])])
+    if result.return_code:
+        fail(("Python headers not installed: %s" +
+              "If you are using host machine's python interpreter, you may need to install headers from your OS vendor " +
+              "(e.g. \"apt-get install python-dev python3-dev\" on Ubuntu).") % result.stderr)
+
     # Compute a hash from the build time dependencies, and use that in the cache
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
     hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
-    python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
     cmd = [python, "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
