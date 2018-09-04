@@ -51,6 +51,17 @@
 
       </td>
     </tr>
+    <tr>
+      <td>
+        <a href="./python/pip.html#pip_version_proxy">
+          <code>pip_version_proxy</code>
+        </a>
+      </td>
+      <td>
+        <p>A rule for proxying requirements between different python runtimes.</p>
+
+      </td>
+    </tr>
   </tbody>
 </table>
 <h2><a href="./python/python.html">python Rules</a></h2>
@@ -108,8 +119,18 @@
   <tbody>
     <tr>
       <td>
-        <a href="./python/whl.html#whl_library">
-          <code>whl_library</code>
+        <a href="./python/whl.html#download_or_build_wheel">
+          <code>download_or_build_wheel</code>
+        </a>
+      </td>
+      <td>
+        
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="./python/whl.html#extract_wheels">
+          <code>extract_wheels</code>
         </a>
       </td>
       <td>
