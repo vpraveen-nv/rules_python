@@ -249,6 +249,7 @@ _requirements = {
 }
 
 all_requirements = _requirements.values()
+requirements_map = _requirements
 
 def requirement(name):
   key = name.lower()
