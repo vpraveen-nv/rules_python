@@ -16,6 +16,9 @@
 def _expand_deps_to_dict(d):
     return "".join(['\n    "{}": [{}],'.format(k, ", ".join(['"{}"'.format(v) for v in vv])) for k, vv in d.items()])
 
+def _expand_build_deps_to_dict(d):
+    return "".join(['\n    "{}": "{}",'.format(k, v) for k, v in d.items()])
+
 def _expand_array(array):
     return "".join(['\n    "{}",'.format(item) for item in array])
 
@@ -44,6 +47,7 @@ sh_binary(
       "%{requirements}": str(repository_ctx.attr.requirements_bzl),
       "%{additional_buildtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_buildtime_deps),
       "%{additional_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_runtime_deps),
+      "%{additional_build_content}": _expand_build_deps_to_dict(repository_ctx.attr.additional_build_content),
       "%{remove_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.remove_runtime_deps),
     })
 
@@ -55,6 +59,7 @@ sh_binary(
       "%{python_label}": str(repository_ctx.attr.python) if repository_ctx.attr.python else "",
       "%{piptool}": str(repository_ctx.path(repository_ctx.attr._script)),
       "%{name}": repository_ctx.attr.name,
+      "%{build_dependencies}": " ".join(['%s=%s' % (k, vv) for k,v in repository_ctx.attr.additional_buildtime_deps.items() for vv in v]),
       "%{requirements_txt}": " ".join(["\"%s\"" % str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]),
       "%{requirements_bzl}": str(repository_ctx.path(repository_ctx.attr.requirements_bzl)) if repository_ctx.attr.requirements_bzl else "",
       "%{directory}": str(repository_ctx.path("")),
@@ -93,6 +98,7 @@ pip_import = repository_rule(
         "pip_args": attr.string_list(),
         "additional_buildtime_deps": attr.string_list_dict(),
         "additional_runtime_deps": attr.string_list_dict(),
+        "additional_build_content": attr.string_dict(),
         "remove_runtime_deps": attr.string_list_dict(),
         "python": attr.label(
             executable = True,

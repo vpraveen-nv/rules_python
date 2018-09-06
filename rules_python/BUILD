@@ -49,6 +49,7 @@ par_binary(
         requirement("pip"),
         requirement("requests"),
         requirement("setuptools"),
+        requirement("toposort"),
         requirement("wheel"),
     ],
 )
