@@ -16,6 +16,9 @@
 def _expand_deps_to_dict(d):
     return "".join(['\n    "{}": [{}],'.format(k, ", ".join(['"{}"'.format(v) for v in vv])) for k, vv in d.items()])
 
+def _expand_env_to_dict(d):
+    return "".join(['\n    "{}": {{{}}},'.format(k, ", ".join(['"{}": "{}"'.format(*v.split('=')) for v in vv])) for k, vv in d.items()])
+
 def _expand_build_deps_to_dict(d):
     return "".join(['\n    "{}": "{}",'.format(k, v) for k, v in d.items()])
 
@@ -46,6 +49,7 @@ sh_binary(
       "%{pip_args}": ", ".join(["\"%s\"" % arg for arg in repository_ctx.attr.pip_args]),
       "%{requirements}": str(repository_ctx.attr.requirements_bzl),
       "%{additional_buildtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_buildtime_deps),
+      "%{additional_buildtime_env}": _expand_env_to_dict(repository_ctx.attr.additional_buildtime_env),
       "%{additional_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_runtime_deps),
       "%{additional_build_content}": _expand_build_deps_to_dict(repository_ctx.attr.additional_build_content),
       "%{remove_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.remove_runtime_deps),
@@ -97,6 +101,7 @@ pip_import = repository_rule(
         ),
         "pip_args": attr.string_list(),
         "additional_buildtime_deps": attr.string_list_dict(),
+        "additional_buildtime_env": attr.string_list_dict(),
         "additional_runtime_deps": attr.string_list_dict(),
         "additional_build_content": attr.string_dict(),
         "remove_runtime_deps": attr.string_list_dict(),

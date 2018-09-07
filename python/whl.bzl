@@ -62,10 +62,11 @@ def _build_wheel(ctx):
               "If you are using host machine's python interpreter, you may need to install headers from your OS vendor " +
               "(e.g. \"apt-get install python-dev python3-dev\" on Ubuntu).") % result.stderr)
 
-    # Compute a hash from the build time dependencies, and use that in the cache
+    # Compute a hash from the build time dependencies + env, and use that in the cache
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
-    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps])
+    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps] +
+                          ["%s=%s" % (k, v) for k, v in ctx.attr.buildtime_env.items()])
     cmd = [python, "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
@@ -86,6 +87,9 @@ allow_hosts = ''
     # Set PYTHONPATH so that all extracted buildtime dependencies are available.
     root = str(ctx.path("../..")) + '/'
     env["PYTHONPATH"] = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
+
+    # Set any other custom env variables the user wants to add to the wheel build.
+    env.update(ctx.attr.buildtime_env)
 
     cmd = [
         python,
@@ -125,6 +129,7 @@ download_or_build_wheel = repository_rule(
         "buildtime_deps": attr.label_list(
             allow_files=["*.whl"],
         ),
+        "buildtime_env": attr.string_dict(),
         "wheel_name": attr.string(),
         "pip_args": attr.string_list(),
         "python": attr.label(

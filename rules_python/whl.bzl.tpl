@@ -2,6 +2,8 @@ load("@io_bazel_rules_python//python:whl.bzl", "download_or_build_wheel", "extra
 
 _additional_buildtime_deps = {%{additional_buildtime_deps}
 }
+_additional_buildtime_env = {%{additional_buildtime_env}
+}
 _additional_runtime_deps = {%{additional_runtime_deps}
 }
 _additional_build_content = {%{additional_build_content}
@@ -32,6 +34,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
     requirement = None if urls != None else "%s==%s" % (key, version)
 
     buildtime_deps = _additional_buildtime_deps.get(key, [])
+    buildtime_env = _additional_buildtime_env.get(key, {})
     additional_runtime_deps = _additional_runtime_deps.get(key, [])
     additional_build_content = _additional_build_content.get(key, None)
     remove_runtime_deps = _remove_runtime_deps.get(key, [])
@@ -59,6 +62,7 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 requirement = requirement,
                 urls = urls,
                 wheel_name = wheel_name,
+                buildtime_env = buildtime_env,
                 buildtime_deps = [_extracted_wheel(all_libs, d) for d in build_deps],
                 pip_args = [%{pip_args}],
                 python = python,
