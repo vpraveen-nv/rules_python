@@ -25,10 +25,15 @@ py_test(
         requirement("pip"),
         requirement("google-cloud:dirty"),
         requirement("scikit-learn"),
-        requirement("pycuda"),
+        #requirement("pycuda"),
         #requirement("botocore"),
         requirement("pytest-mock"),
         requirement("keras"),
-        requirement("tensorflow"),
+        #requirement("tensorflow"),
     ],
+)
+
+alias(
+    name = "pytest",
+    actual = requirement("pytest", binary="pytest"),
 )

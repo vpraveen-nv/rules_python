@@ -23,6 +23,11 @@ import re
 import shutil
 import zipfile
 
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
 
 class Wheel(object):
 
@@ -91,6 +96,16 @@ class Wheel(object):
       # fall back to METADATA file (https://www.python.org/dev/peps/pep-0427/)
       with whl.open(os.path.join(self._dist_info(), 'METADATA')) as f:
         return self._parse_metadata(f.read().decode("utf-8"))
+
+  def entrypoints(self):
+      with zipfile.ZipFile(self.path(), 'r') as whl:
+          try:
+              with whl.open(os.path.join(self._dist_info(), 'entry_points.txt')) as f:
+                  parser = ConfigParser()
+                  parser.readfp(f)
+                  return parser
+          except KeyError:
+              return None
 
   def name(self):
     return self.metadata().get('name').lower()

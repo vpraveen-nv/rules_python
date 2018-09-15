@@ -1,18 +1,18 @@
 botocore
 scikit-learn==0.17.1
 scipy==0.17.1
-pycuda==2017.1.1
+#pycuda==2017.1.1
 # Test google-cloud which has aliasing issues
 google-cloud==0.29.0
 pytest-mock==1.6.2
-setuptools_scm==2.0.0
+setuptools-scm==2.0.0
 # Test keras 2.2.2 which has cyclic dependencies that need to be dropped
 keras==2.2.2
 # Backports packages alias one another, this is not yet fixed
 backports.functools-lru-cache==1.5
 backports.ssl-match-hostname==3.5.0.1
 # Test support for referencing wheels via fixed URLs
-https://files.pythonhosted.org/packages/37/ff/97d4542f805ae25bf4b65b6263515584c78bd9a6111ed78ea971eff2946a/tensorflow-1.9.0-cp27-cp27mu-manylinux1_x86_64.whl
+#https://files.pythonhosted.org/packages/37/ff/97d4542f805ae25bf4b65b6263515584c78bd9a6111ed78ea971eff2946a/tensorflow-1.9.0-cp27-cp27mu-manylinux1_x86_64.whl
 # Need to freeze to an older numpy for some reason, otherwise we get these from various modules:
 #   RuntimeWarning: numpy.dtype size changed, may indicate binary incompatibility. Expected 96, got 88
 numpy==1.14.0
