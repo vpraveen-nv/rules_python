@@ -508,16 +508,16 @@ def resolve(args):
     # Indentation here matters.  whl_library must be within the scope
     # of the function below.  We also avoid reimporting an existing WHL.
     return """"{}": {{
-      {},
-    }},""".format(wheel.name(), ",\n      ".join(['"{}": {}'.format(k, v) for k, v in attrs]))
+            {},
+        }},""".format(wheel.name(), ",\n            ".join(['"{}": {}'.format(k, v) for k, v in attrs]))
 
-  requirements_map = ',\n  '.join([
-    ',\n  '.join([
-      '"{name}": "@{repo}//:pkg",\n  "{name}:dirty": "@{repo}_dirty//:pkg"'.format(
+  requirements_map = '\n    '.join([
+    '\n    '.join([
+      '"{name}": "@{repo}//:pkg",\n    "{name}:dirty": "@{repo}_dirty//:pkg",'.format(
           name=whl.name(), repo=lib_repo(whl))
     ] + [
       # For every extra that is possible from this requirements.txt
-      '"{name}[{extra_lower}]": "@{repo}//:{extra}",\n  "{name}:dirty[{extra_lower}]": "@{repo}_dirty//:{extra}"'.format(
+      '"{name}[{extra_lower}]": "@{repo}//:{extra}",\n    "{name}:dirty[{extra_lower}]": "@{repo}_dirty//:{extra}",'.format(
         name=whl.name(), repo=lib_repo(whl), extra=extra, extra_lower=extra.lower())
       for extra in sorted(possible_extras.get(whl, []))
     ])
@@ -533,40 +533,39 @@ def resolve(args):
 load("@{name}//python:whl.bzl", "whl_library")
 
 _requirements = {{
-  {requirements_map}
+    {requirements_map}
 }}
 
 all_requirements = _requirements.values()
 requirements_map = _requirements
 
 def requirement_repo(name):
-  return requirement(name).split(":")[0]
+    return requirement(name).split(":")[0]
 
-def requirement(name, binary=None):
-  key = name.lower()
-  if key not in _requirements:
-    fail("Could not find pip-provided dependency: '%s'" % name)
-  if binary:
-    return _requirements[key].split(":")[0] + ":entrypoint_" + binary
-  return _requirements[key]
+def requirement(name, binary = None):
+    key = name.lower()
+    if key not in _requirements:
+        fail("Could not find pip-provided dependency: '%s'" % name)
+    if binary:
+        return _requirements[key].split(":")[0] + ":entrypoint_" + binary
+    return _requirements[key]
 
 def pip_install():
-  all_libs = {{
-    {all_libs}
-  }}
+    all_libs = {{
+        {all_libs}
+    }}
 
-  for key, attributes in all_libs.items():
-    whl_library(
-      key = key,
-      all_libs = all_libs,{python}
-      **attributes
-    )
-
+    for key, attributes in all_libs.items():
+        whl_library(
+            key = key,
+            all_libs = all_libs,{python}
+            **attributes
+        )
 """.format(comment='\n'.join(['# Generated from ' + i for i in args.input]),
            name=args.name,
-           all_libs='\n    '.join(map(whl_library, whls)),
+           all_libs='\n        '.join(map(whl_library, whls)),
            requirements_map=requirements_map,
-           python='\n      python = "{}",'.format(args.python) if args.python else ''))
+           python='\n            python = "{}",'.format(args.python) if args.python else ''))
 
 parser = subparsers.add_parser('resolve', help='Resolve requirements.bzl from requirements.txt')
 parser.set_defaults(func=resolve)
