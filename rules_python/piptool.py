@@ -393,8 +393,8 @@ def resolve(args):
               with open(os.path.join(dirname, '__init__.py'), 'w') as f:
                   pass
 
-      with tempfile.NamedTemporaryFile() as f:
-          with tempfile.NamedTemporaryFile() as f2:
+      with tempfile.NamedTemporaryFile(mode='w+') as f:
+          with tempfile.NamedTemporaryFile(mode='w+') as f2:
               f.write('\n'.join(o))
               f.flush()
 

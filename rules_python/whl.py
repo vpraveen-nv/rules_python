@@ -106,8 +106,8 @@ class Wheel(object):
       with zipfile.ZipFile(self.path(), 'r') as whl:
           try:
               with whl.open(os.path.join(self._dist_info(), 'entry_points.txt')) as f:
-                  lines = map(lambda l: l.strip(), f.readlines())
-                  stream = StringIO('\n'.join(lines).decode('utf-8'))
+                  lines = map(lambda l: l.strip().decode('utf-8'), f.readlines())
+                  stream = StringIO('\n'.join(lines))
                   parser = ConfigParser()
                   parser.readfp(stream)
                   stream.close()
