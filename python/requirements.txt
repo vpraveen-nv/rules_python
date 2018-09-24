@@ -1,6 +1,6 @@
-distlib==0.2.6
-pip==9.0.1
-requests==2.12.1
-setuptools==40.2.0
+distlib==0.2.7
+pip==10.0.1
+requests==2.19.1
+setuptools==40.4.3
 toposort==1.5
-wheel==0.30.0a0
+wheel==0.31.1
