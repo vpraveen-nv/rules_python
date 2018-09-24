@@ -15,6 +15,7 @@
 
 import argparse
 import atexit
+import collections
 import itertools
 import json
 import os
@@ -344,28 +345,27 @@ def determine_possible_extras(whls):
 def build_dep_graph(args):
     pattern = re.compile('[a-zA-Z0-9_-]+')
 
-    requirements = {}
+    flatten = lambda l: [item for sublist in l for item in sublist]
+    dist_to_lines = collections.defaultdict(list)
     for i in args.input:
         with open(i) as f:
             for l in f.readlines():
                 l = l.strip()
                 m = pattern.match(l)
                 if m:
-                    requirements[m.group()] = l
+                    dist_to_lines[m.group()].append(l)
 
     if not args.build_dep:
-        return [requirements.values()]
+        return [flatten(dist_to_lines.values())]
 
-    deps = {}
+    deps = collections.defaultdict(list)
     for i in args.build_dep:
         k,v = i.split('=')
-        if k not in requirements:
+        if k not in dist_to_lines:
             continue
-        if k not in deps:
-            deps[k] = []
-        deps[k].append(requirements[v])
+        deps[k] += dist_to_lines[v]
 
-    graph = {r: set(deps[n]) if n in deps else set() for n,r in requirements.items()}
+    graph = {r: set(deps[n]) if n in deps else set() for n,rr in dist_to_lines.items() for r in rr}
     result = list(toposort.toposort(graph))
     return result
 
