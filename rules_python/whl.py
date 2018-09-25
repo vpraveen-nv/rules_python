@@ -133,7 +133,7 @@ class Wheel(object):
     run_requires = self.metadata().get('run_requires', [])
 
     for requirement in run_requires:
-      if requirement.get('extra') != extra:
+      if 'extra' in requirement and requirement['extra'] != extra:
         # Match the requirements for the extra we're looking for.
         continue
       if 'environment' in requirement:
