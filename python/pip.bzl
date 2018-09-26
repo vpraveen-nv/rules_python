@@ -219,7 +219,7 @@ sh_binary(
 
     ctx.file("update.sh", content="""\
 #!/bin/bash
-set -exo pipefail
+set -eo pipefail
 
 for cmd in "$@"; do
     "$cmd" &

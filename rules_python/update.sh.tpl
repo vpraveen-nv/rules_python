@@ -7,7 +7,7 @@ REQUIREMENTS_BZL="%{requirements_bzl}"
 BUILD_AREA="%{directory}/build"
 PIP_CACHE="%{directory}/pip-cache"
 
-REQUIREMENTS_BZL_TEMP="requirements.bzl.tmp"
+REQUIREMENTS_BZL_TEMP=$(mktemp)
 echo "Generating $REQUIREMENTS_BZL from ${REQUIREMENTS_TXT[@]}..."
 
 "%{python}" "%{piptool}" resolve \
@@ -22,5 +22,5 @@ echo "Generating $REQUIREMENTS_BZL from ${REQUIREMENTS_TXT[@]}..."
     --cache-dir "$PIP_CACHE" \
     "$@"
 
-cp "$REQUIREMENTS_BZL_TEMP" "$REQUIREMENTS_BZL"
+mv "$REQUIREMENTS_BZL_TEMP" "$REQUIREMENTS_BZL"
 echo "$REQUIREMENTS_BZL updated!"
