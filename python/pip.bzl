@@ -188,14 +188,47 @@ def requirement_{key}(r):
     return "@{name}//:{key}__%s" % _sanitize(r)
 """.format(name=ctx.attr.name, key=k) for k in ctx.attr.values.keys()])
 
+    update_deps = "".join(["""\
+        "{repo}//:update",
+""".format(repo=v, key=k) for k, v in ctx.attr.values.items()])
+
+    update_locations = "".join(["""\
+        "$(location {repo}//:update)",
+""".format(repo=v, key=k) for k, v in ctx.attr.values.items()])
+
     ctx.file("BUILD.bazel", content="""\
 load("@{name}//:requirements.bzl", "proxy_install")
 package(default_visibility = ["//visibility:public"])
 
 proxy_install()
 
+sh_binary(
+    name = "update",
+    srcs = ["update.sh"],
+    data = [
+        {update_deps}
+    ],
+    args = [
+        {update_locations}
+    ],
+)
+
 {config_settings}
-""".format(name=ctx.attr.name, config_settings=config_settings))
+""".format(name=ctx.attr.name, config_settings=config_settings, update_deps=update_deps,
+           update_locations=update_locations))
+
+    ctx.file("update.sh", content="""\
+#!/bin/bash
+set -exo pipefail
+
+for cmd in "$@"; do
+    "$cmd" &
+done
+
+for job in `jobs -p`; do
+    wait $job || true
+done
+""", executable=True)
 
     ctx.file("requirements.bzl", content="""\
 {loads}
