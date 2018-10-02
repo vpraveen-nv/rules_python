@@ -259,7 +259,7 @@ def proxy_install():
 
 
 def requirement(r):
-    return "@{name}//:%s" % _sanitize(r)
+    return "@{name}//:%s" % _sanitize(r).lower()
 {specific_macros}
 """.format(loads=loads, gathers=gathers, specific_macros=specific_macros, name=ctx.attr.name))
 
