@@ -145,7 +145,9 @@ def _download_or_build_wheel_impl(ctx):
     if ctx.attr.urls and ctx.attr.requirement:
         fail("only one of urls and requirement should be specified")
 
-    if ctx.attr.urls:
+    if ctx.attr.local_path:
+        ctx.symlink(ctx.attr.local_path, ctx.attr.wheel_name)
+    elif ctx.attr.urls:
         ctx.download(url=ctx.attr.urls, output=ctx.attr.wheel_name)
     else:
         _build_wheel(ctx)
@@ -159,6 +161,7 @@ download_or_build_wheel = repository_rule(
     attrs = {
         "requirement": attr.string(),
         "urls": attr.string_list(),
+        "local_path": attr.string(),
         "buildtime_deps": attr.label_list(
             allow_files=["*.whl"],
         ),

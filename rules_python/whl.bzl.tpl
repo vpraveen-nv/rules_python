@@ -12,6 +12,7 @@ _remove_runtime_deps = {%{remove_runtime_deps}
 }
 _patch_runtime = {%{patch_runtime}
 }
+_pip_args = [%{pip_args}]
 
 def get_transitive_deps(all_libs, key):
     res = depset(all_libs[key].get("transitive_runtime_deps", []))
@@ -21,19 +22,33 @@ def get_transitive_deps(all_libs, key):
     return res
 
 def _global_wheel(all_libs, key):
-  return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
+    return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
 
 def _wheel(all_libs, key):
-  return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
+    return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
 
 def _extracted_wheel(all_libs, key):
-  return "@%s//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
+    return "@%s//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
 
-def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=None, transitive_runtime_deps=[], runtime_deps=[], extras=[], python=None):
+def whl_library(
+    key,
+    all_libs,
+    name,
+    wheel_name,
+    version = None,
+    urls = None,
+    local_path = None,
+    whl = None,
+    transitive_runtime_deps = None,
+    extras = None,
+    python = None,
+):
     repository = "%{repo}"
     dirty_repo_name = "%s_dirty" % name
     wheel_repo_name = "%s_wheel" % name
-    requirement = None if urls != None else "%s==%s" % (key, version)
+    requirement = None
+    if not urls and not local_path:
+        requirement = "%s==%s" % (key, version)
 
     buildtime_deps = _additional_buildtime_deps.get(key, [])
     buildtime_env = _additional_buildtime_env.get(key, {})
@@ -66,9 +81,10 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
                 requirement = requirement,
                 urls = urls,
                 wheel_name = wheel_name,
+                local_path = local_path,
                 buildtime_env = buildtime_env,
                 buildtime_deps = [_extracted_wheel(all_libs, d) for d in build_deps],
-                pip_args = [%{pip_args}],
+                pip_args = _pip_args,
                 python = python,
             )
             extract_wheels(
@@ -88,7 +104,8 @@ def whl_library(key, all_libs, name, wheel_name, version=None, urls=None, whl=No
         # since piptool will generate the BUILD file based on that.  The remaining wheels
         # on the list should be all transitive runtime dependencies (unless explicitly
         # dropped at pip_import rule level).
-        dep_keys = {d.split("[")[0]: None for d in transitive_runtime_deps if d not in remove_runtime_deps}
+        run_deps = transitive_runtime_deps or []
+        dep_keys = {d.split("[")[0]: None for d in run_deps if d not in remove_runtime_deps}
         if whl:
             wheels = ["@%s//:%s" % (repository, all_libs[key]["wheel_name"])] + \
                      ["@%s//:%s" % (repository, all_libs[key]["wheel_name"]) for key in dep_keys]
