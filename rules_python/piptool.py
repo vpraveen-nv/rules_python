@@ -142,7 +142,7 @@ def build(args):
     else:
       r.raise_for_status()
       wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
-      with open(wheel_filename, 'w') as f:
+      with open(wheel_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=128):
           f.write(chunk)
       print("Downloaded {}".format(cache_url))
