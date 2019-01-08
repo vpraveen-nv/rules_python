@@ -14,12 +14,9 @@ _patch_runtime = {%{patch_runtime}
 }
 _pip_args = [%{pip_args}]
 
+
 def get_transitive_deps(all_libs, key):
-    res = depset(all_libs[key].get("transitive_runtime_deps", []))
-    if key in _additional_runtime_deps:
-        for d in _additional_runtime_deps[key]:
-            res = res + get_transitive_deps(d)
-    return res
+    return depset(all_libs[key].get("transitive_runtime_deps", []))
 
 def _global_wheel(all_libs, key):
     return "@%s_wheel//:%s" % (all_libs[key]["name"], all_libs[key]["wheel_name"])
