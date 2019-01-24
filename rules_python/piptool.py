@@ -131,7 +131,7 @@ def get_cache_url(args):
   cache_base = os.environ.get("BAZEL_WHEEL_CACHE")
   if not cache_base or not args.cache_key:
     return None
-  return "http://{}/{}".format(cache_base, args.cache_key)
+  return "{}/{}".format(cache_base, args.cache_key)
 
 def get_remote_retry_attempts():
   env_value = os.environ.get("BAZEL_WHEEL_REMOTE_RETRY_ATTEMPTS")
