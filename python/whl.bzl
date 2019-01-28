@@ -106,9 +106,6 @@ def _build_wheel(ctx):
 def _download_or_build_wheel_impl(ctx):
     """Core implementation of download_or_build_wheel."""
 
-    if ctx.attr.urls and ctx.attr.requirement:
-        fail("only one of urls and requirement should be specified")
-
     if ctx.attr.local_path:
         ctx.symlink(ctx.attr.local_path, ctx.attr.wheel_name)
     elif ctx.attr.urls:
