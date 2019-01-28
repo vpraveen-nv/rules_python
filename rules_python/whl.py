@@ -76,6 +76,13 @@ class Wheel(object):
     parts = self.basename().split('-')
     return parts[1]
 
+  def build_tag(self):
+    # See https://www.python.org/dev/peps/pep-0427/#file-name-convention
+    parts = self.basename().split('-')
+    if len(parts) == 6:
+      return parts[2]
+    return None
+
   def repository_name(self, prefix='pypi'):
     # Returns the canonical name of the Bazel repository for this package.
     canonical = '{}__{}_{}'.format(prefix, self.distribution(), self.version())
@@ -86,6 +93,8 @@ class Wheel(object):
     # Return the name of the dist-info directory within the .whl file.
     # e.g. google_cloud-0.27.0-py2.py3-none-any.whl ->
     #      google_cloud-0.27.0.dist-info
+    if self.build_tag():
+      return '{}-{}-{}.dist-info'.format(self.distribution(), self.version(), self.build_tag())
     return '{}-{}.dist-info'.format(self.distribution(), self.version())
 
   def metadata(self):
