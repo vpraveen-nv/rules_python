@@ -741,9 +741,6 @@ def resolve(args):
     extras = ', '.join([quote(extra) for extra in sorted(possible_extras.get(wheel, []))])
     if extras != '':
       attrs += [("extras", '[{}]'.format(extras))]
-    runtime_deps = ', '.join([quote(dep) for dep in wheel.dependencies()])
-    #if runtime_deps != '':
-    #  attrs["runtime_deps"] = '[{}]'.format(runtime_deps)
     transitive_runtime_deps = set([split_extra(dep)[0] for dep in transitive_deps(wheel)])
     transitive_runtime_deps = ', '.join([quote(dep) for dep in sorted(transitive_runtime_deps)])
     if transitive_runtime_deps != '':
