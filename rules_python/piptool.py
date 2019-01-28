@@ -77,14 +77,21 @@ import setuptools
 import wheel
 
 
-def pip_main(argv):
+def pip_main(argv, env=None):
     # Extract the certificates from the PAR following the example of get-pip.py
     # https://github.com/pypa/get-pip/blob/04e994a41ff0a97812d6d2/templates/default.py#L167-L171
     cert_path = os.path.join(tempfile.mkdtemp(), "cacert.pem")
     with open(cert_path, "wb") as cert:
       cert.write(pkgutil.get_data("pip._vendor.certifi", "cacert.pem"))
     argv = ["--disable-pip-version-check", "--cert", cert_path] + argv
-    return pip._internal.main(argv)
+    old_env = os.environ.copy()
+    try:
+      if env:
+        os.environ.update(env)
+      return pip._internal.main(argv)
+    finally:
+      os.environ.clear()
+      os.environ.update(old_env)
 
 from rules_python.whl import Wheel
 
@@ -103,29 +110,56 @@ def split_extra(s):
 # piptool build
 # -------------
 
-def build_wheel(args):
-  pip_args = ["wheel"]
-  if args.directory:
-    pip_args += ["-w", args.directory]
-  if len(args.args) > 0 and args.args[0] == '--':
-    pip_args += args.args[1:]
-  else:
-    pip_args += args.args
-  # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-  if pip_main(pip_args):
-    sys.exit(1)
+def build_wheel(distribution,
+                version,
+                directory,
+                cache_key=None,
+                additional_buildtime_env=None,
+                additional_buildtime_deps=None,
+                pip_args=None):
+  env = {}
 
-  cache_url = get_cache_url(args)
-  if cache_url:
-    wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
-    with open(wheel_filename, 'rb') as f:
-      try:
-        r = requests.put(cache_url, data=f.read())
-        if r.status_code == requests.codes.ok:
-          print("Uploaded {}".format(cache_url))
-      except requests.exceptions.ConnectionError:
-        # Probably no access to write to the cache
-        pass
+  home = tempfile.mkdtemp()
+
+  cmd = ["wheel"]
+  cmd += ["-w", directory]
+
+  # Allowing "pip wheel" to download setup_requires packages with easy_install would
+  # poke a hole to our wheel version locking scheme, making wheel builds non-deterministic.
+  # Disable easy_install as instructed here:
+  #   https://pip.pypa.io/en/stable/reference/pip_install/#controlling-setup-requires
+  # We set HOME to the current directory so pip will look at this file; see:
+  #   https://docs.python.org/2/install/index.html#distutils-configuration-files
+  env["HOME"] = home
+  with open(os.path.join(home, ".pydistutils.cfg"), "w") as f:
+    f.write("[easy_install]\nallow_hosts = ''\n")
+
+  for d in additional_buildtime_deps or []:
+    Wheel(d).expand(home)
+
+  # Process .pth files of the extracted build deps.
+  with open(os.path.join(home, "sitecustomize.py"), "w") as f:
+    f.write("import site; import os; site.addsitedir(os.path.dirname(__file__))")
+
+  # Set PYTHONPATH so that all extracted buildtime dependencies are available.
+  env["PYTHONPATH"] = ":".join(os.environ.get("PYTHONPATH", "").split(":") + [home])
+
+  # Set any other custom env variables the user wants to add to the wheel build.
+  env.update(dict([x.split("=", 1) for x in additional_buildtime_env or []]))
+
+  cmd += ["%s==%s" % (distribution, version)]
+
+  cmd += ["--no-cache-dir"]
+  cmd += ["--no-deps"]
+
+  cmd += pip_args or []
+
+  wheels = wheels_from_dir(directory)
+  assert len(wheels) == 1
+  wheel = wheels[0]
+
+  shutil.rmtree(home)
+  return computed_sha256
 
 def get_cache_url(args):
   cache_base = os.environ.get("BAZEL_WHEEL_CACHE")
@@ -171,7 +205,16 @@ def build(args):
         raise
     # Build locally when remote local fallback is enabled or on 404 (not found = cache miss).
     if use_local_fallback or r.status_code == 404:
-      build_wheel(args)
+      build_wheel(**vars(args))
+      wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
+      with open(wheel_filename, 'rb') as f:
+        try:
+          r = requests.put(cache_url, data=f.read())
+          if r.status_code == requests.codes.ok:
+            print("Uploaded {}".format(cache_url))
+        except requests.exceptions.ConnectionError:
+          # Probably no access to write to the cache
+          pass
     else:
       r.raise_for_status()
       wheel_filename = os.path.join(args.directory, cache_url.split('/')[-1])
@@ -180,7 +223,7 @@ def build(args):
           f.write(chunk)
       print("Downloaded {}".format(cache_url))
   else:
-    build_wheel(args)
+    build_wheel(**vars(args))
 
 parser = subparsers.add_parser('build', help='Download or build a single wheel, optionally checking from cache first')
 parser.set_defaults(func=build)
@@ -191,7 +234,19 @@ parser.add_argument('--directory', action='store', default='.',
 parser.add_argument('--cache-key', action='store',
                     help=('The cache key to use when looking up .whl file from cache.'))
 
-parser.add_argument('args', nargs=argparse.REMAINDER,
+parser.add_argument('--additional-buildtime-env', action='append', default=[],
+                    help=('Environmental variables to set when building.'))
+
+parser.add_argument('--additional-buildtime-deps', action='append', default=[],
+                    help=('Wheels that are required to be installed when building.'))
+
+parser.add_argument('--distribution', action='store',
+                    help=('Name of the distribution to build.'))
+
+parser.add_argument('--version', action='store',
+                    help=('Version of the distribution to build.'))
+
+parser.add_argument('--pip_arg', dest='pip_args', action='append', default=[],
                     help=('Extra arguments to send to pip.'))
 
 
@@ -402,7 +457,8 @@ def resolve(args):
   tempdir = tempfile.mkdtemp()
 
   existing_pythonpath = os.environ.get('PYTHONPATH', '')
-  os.environ['PYTHONPATH'] = tempdir + ':' + existing_pythonpath
+  env = {}
+  env['PYTHONPATH'] = tempdir + ':' + existing_pythonpath
 
   for i, o in enumerate(ordering):
       # Install the wheels since they can be dependent at build time
@@ -411,7 +467,7 @@ def resolve(args):
           filelist = [os.path.join(args.directory, f) for f in filelist]
           if filelist:
             pip_args = ["install", "-q", "--upgrade", "-t", tempdir] + filelist
-            if pip_main(pip_args):
+            if pip_main(pip_args, env):
               shutil.rmtree(tempdir)
               sys.exit(1)
 
@@ -439,7 +495,7 @@ def resolve(args):
               pip_args += ["--constraint=" + f2.name]
               pip_args += args.pip_args
               # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-              if pip_main(pip_args):
+              if pip_main(pip_args, env):
                 shutil.rmtree(tempdir)
                 sys.exit(1)
 
@@ -575,7 +631,9 @@ parser.add_argument('--pip-arg', dest='pip_args', action='append', default=[],
 
 def main():
   args = global_parser.parse_args()
-  args.func(args)
+  f = args.func
+  del args.func
+  f(args)
 
 if __name__ == '__main__':
   main()

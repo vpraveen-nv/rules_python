@@ -80,35 +80,22 @@ def _build_wheel(ctx):
         fail("failed to compute checksum: %s (%s)" % (result.stdout, result.stderr))
     cache_key = "%s/%s" % (result.stdout.strip(), ctx.attr.wheel_name)
 
-    # Allowing "pip wheel" to download setup_requires packages with easy_install would
-    # poke a hole to our wheel version locking scheme, making wheel builds non-deterministic.
-    # Disable easy_install as instructed here:
-    #   https://pip.pypa.io/en/stable/reference/pip_install/#controlling-setup-requires
-    # We set HOME to the current directory so pip will look at this file; see:
-    #   https://docs.python.org/2/install/index.html#distutils-configuration-files
-    env["HOME"] = str(ctx.path(""))
-    ctx.file(".pydistutils.cfg", """[easy_install]
-allow_hosts = ''
-""")
-
-    # Set PYTHONPATH so that all extracted buildtime dependencies are available.
-    root = str(ctx.path("../..")) + '/'
-    env["PYTHONPATH"] = ':'.join([root + dep.workspace_root for dep in ctx.attr.buildtime_deps])
-
-    # Set any other custom env variables the user wants to add to the wheel build.
-    env.update(ctx.attr.buildtime_env)
-
     cmd = [
         python,
         ctx.path(ctx.attr._piptool),
         "build",
         "--directory", ctx.path(""),
         "--cache-key", cache_key,
+        "--distribution", ctx.attr.distribution,
+        "--version", ctx.attr.version,
+    ] + [
+        "--additional-buildtime-env=%s" % x for x in ctx.attr.additional_buildtime_env
+    ] + [
+        "--additional-buildtime-deps=%s" % ctx.path(x) for x in ctx.attr.buildtime_deps
+    ] + [
+        "--pip_arg=%s" % a for a in ctx.attr.pip_args
     ]
-    cmd += ["--", ctx.attr.requirement]
-    cmd += ctx.attr.pip_args
-    cmd += ["--no-cache-dir"]
-    cmd += ["--no-deps"]
+
     result = ctx.execute(cmd, quiet=False, environment=env)
     if result.return_code:
         fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
