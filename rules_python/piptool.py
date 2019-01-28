@@ -16,6 +16,8 @@
 import argparse
 import atexit
 import collections
+import hashlib
+import io
 import itertools
 import json
 import os
@@ -106,6 +108,20 @@ def split_extra(s):
     return parts[0], None
   return parts[0], parts[1][:-1]
 
+class CaptureOutput():
+  def write(self, data):
+    self.stdout_save.write(data)
+    self.stdout.write(data.encode())
+  def __getattr__(self, name):
+    return getattr(self.stdout_save, name)
+  def __enter__(self):
+    self.stdout_save = sys.stdout
+    self.stdout = io.BytesIO()
+    sys.stdout = self
+    return self
+  def __exit__(self, *exc_details):
+    sys.stdout = self.stdout_save
+
 
 # piptool build
 # -------------
@@ -114,12 +130,21 @@ def build_wheel(distribution,
                 version,
                 directory,
                 cache_key=None,
+                build_dir=None,
                 additional_buildtime_env=None,
                 additional_buildtime_deps=None,
+                sha256=None,
                 pip_args=None):
   env = {}
 
-  home = tempfile.mkdtemp()
+  home = None
+  if build_dir:
+    home = build_dir.rstrip("/") + ".home"
+    if os.path.isdir(home):
+      shutil.rmtree(home)
+    os.makedirs(home)
+  else:
+    home = tempfile.mkdtemp()
 
   cmd = ["wheel"]
   cmd += ["-w", directory]
@@ -143,20 +168,55 @@ def build_wheel(distribution,
 
   # Set PYTHONPATH so that all extracted buildtime dependencies are available.
   env["PYTHONPATH"] = ":".join(os.environ.get("PYTHONPATH", "").split(":") + [home])
+  env["CFLAGS"] = " ".join([
+      "-D__DATE__=\"redacted\"",
+      "-D__TIMESTAMP__=\"redacted\"",
+      "-D__TIME__=\"redacted\"",
+      "-Wno-builtin-macro-redefine",
+  ])
 
   # Set any other custom env variables the user wants to add to the wheel build.
   env.update(dict([x.split("=", 1) for x in additional_buildtime_env or []]))
 
-  cmd += ["%s==%s" % (distribution, version)]
+  # For determinism, canonicalize distribution name to lowercase here, since, lo and
+  # behold, the wheel contents may be different depending on the case passed to
+  # "pip wheel" command...
+  cmd += ["%s==%s" % (distribution.lower(), version)]
 
   cmd += ["--no-cache-dir"]
   cmd += ["--no-deps"]
 
+  # Build the wheel in a deterministic path so that any debug symbols have stable
+  # paths and the resulting wheel has a higher chance of being deterministic.
+  if build_dir:
+    if os.path.isdir(build_dir):
+      shutil.rmtree(build_dir)
+    cmd += ["--build", build_dir]
+
   cmd += pip_args or []
+
+  locally_built = False
+  with CaptureOutput() as output:
+    if pip_main(cmd, env):
+      sys.exit(1)
+    if re.search(r"Running setup\.py bdist_wheel", output.stdout.getvalue().decode()):
+      locally_built = True
 
   wheels = wheels_from_dir(directory)
   assert len(wheels) == 1
   wheel = wheels[0]
+
+  if locally_built:
+    # The wheel was built locally. For determinism, we need to strip timestamps
+    # from the zip-file.
+    strip_wheel(wheel)
+
+  computed_sha256 = digest(wheel.path())
+
+  if sha256 and computed_sha256 != sha256:
+    # If the user supplied an expected sha256, we must match it.
+    print("Built wheel %s digest %s does not match expected digest %s." % (wheel.path(), computed_sha256, sha256))
+    sys.exit(1)
 
   shutil.rmtree(home)
   return computed_sha256
@@ -234,6 +294,9 @@ parser.add_argument('--directory', action='store', default='.',
 parser.add_argument('--cache-key', action='store',
                     help=('The cache key to use when looking up .whl file from cache.'))
 
+parser.add_argument('--build-dir', action='store',
+                    help=('A directory to build the wheel in, needs to be stable to keep the build deterministic (e.g. debug symbols).'))
+
 parser.add_argument('--additional-buildtime-env', action='append', default=[],
                     help=('Environmental variables to set when building.'))
 
@@ -245,6 +308,9 @@ parser.add_argument('--distribution', action='store',
 
 parser.add_argument('--version', action='store',
                     help=('Version of the distribution to build.'))
+
+parser.add_argument('--sha256', action='store',
+                    help=('The expected sha256 digest of the built wheel.'))
 
 parser.add_argument('--pip_arg', dest='pip_args', action='append', default=[],
                     help=('Extra arguments to send to pip.'))
@@ -451,6 +517,39 @@ def build_dep_graph(args):
     result = list(toposort.toposort(graph))
     return result
 
+def wheels_from_dir(dir):
+  def list_whls(dir):
+    for root, _, filenames in os.walk(dir + "/"):
+      for fname in filenames:
+        if fname.endswith('.whl'):
+          yield Wheel(os.path.join(root, fname))
+  whls = list(list_whls(dir))
+  whls.sort(key=lambda x: x.name())
+  return whls
+
+def strip_wheel(w):
+    ts = (1980, 1, 1, 0, 0, 0)
+    tempdir = tempfile.mkdtemp()
+    try:
+      w.expand(tempdir)
+      with zipfile.ZipFile(w.path(), 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(tempdir):
+          for f in files:
+            local_path = os.path.join(root, f)
+            with open(local_path, "rb") as ff:
+              info = zipfile.ZipInfo(os.path.relpath(local_path, start=tempdir), ts)
+              info.external_attr = (os.stat(local_path).st_mode & 0o777) << 16
+              zipf.writestr(info, ff.read())
+    finally:
+      shutil.rmtree(tempdir)
+
+def digest(fname):
+  d = hashlib.sha256()
+  with open(fname, "rb") as f:
+    for chunk in iter(lambda: f.read(4096), b""):
+      d.update(chunk)
+  return d.hexdigest()
+
 def resolve(args):
   ordering = build_dep_graph(args)
 
@@ -524,17 +623,8 @@ def resolve(args):
     return None
 
   # Enumerate the .whl files we downloaded.
-  def wheels_from_dir(dir):
-    def list_whls(dir):
-      for root, _, filenames in os.walk(dir + "/"):
-        for fname in filenames:
-          if fname.endswith('.whl'):
-            yield Wheel(os.path.join(root, fname))
-    whls = list(list_whls(dir))
-    whls.sort(key=lambda x: x.name())
-    return whls
-
   whls = wheels_from_dir(args.directory)
+
   possible_extras = determine_possible_extras(whls)
 
   def quote(string):

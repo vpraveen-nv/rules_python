@@ -88,6 +88,9 @@ def _build_wheel(ctx):
         "--cache-key", cache_key,
         "--distribution", ctx.attr.distribution,
         "--version", ctx.attr.version,
+        # Build the wheel in a deterministic path so that any debug symbols have stable
+        # paths and the resulting wheel has a higher chance of being deterministic.
+        "--build-dir", "/tmp/pip-build/%s" % ctx.name,
     ] + [
         "--additional-buildtime-env=%s" % x for x in ctx.attr.additional_buildtime_env
     ] + [
@@ -95,6 +98,8 @@ def _build_wheel(ctx):
     ] + [
         "--pip_arg=%s" % a for a in ctx.attr.pip_args
     ]
+    if ctx.attr.sha256:
+        cmd += ["--sha256", ctx.attr.sha256]
 
     result = ctx.execute(cmd, quiet=False, environment=env)
     if result.return_code:
@@ -109,7 +114,7 @@ def _download_or_build_wheel_impl(ctx):
     if ctx.attr.local_path:
         ctx.symlink(ctx.attr.local_path, ctx.attr.wheel_name)
     elif ctx.attr.urls:
-        ctx.download(url=ctx.attr.urls, output=ctx.attr.wheel_name)
+        ctx.download(url=ctx.attr.urls, sha256=ctx.attr.sha256, output=ctx.attr.wheel_name)
     else:
         _build_wheel(ctx)
 
