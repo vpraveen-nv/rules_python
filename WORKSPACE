@@ -203,6 +203,7 @@ pip_import(
     ],
     requirements_bzl = "//examples/checked_in_requirements_bzl:requirements.bzl",
     requirements_overrides = wheel_overrides,
+    digests = True,
     python = "@python2//:bin/python",
 )
 

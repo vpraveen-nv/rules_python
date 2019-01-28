@@ -14,6 +14,7 @@
 """The piptool module imports pip requirements into Bazel rules."""
 
 import argparse
+import ast
 import atexit
 import collections
 import hashlib
@@ -134,7 +135,8 @@ def build_wheel(distribution,
                 additional_buildtime_env=None,
                 additional_buildtime_deps=None,
                 sha256=None,
-                pip_args=None):
+                pip_args=None,
+                resolving=False):
   env = {}
 
   home = None
@@ -214,9 +216,24 @@ def build_wheel(distribution,
   computed_sha256 = digest(wheel.path())
 
   if sha256 and computed_sha256 != sha256:
-    # If the user supplied an expected sha256, we must match it.
-    print("Built wheel %s digest %s does not match expected digest %s." % (wheel.path(), computed_sha256, sha256))
-    sys.exit(1)
+    if resolving:
+      if locally_built:
+        os.rename(wheel.path(), wheel.path() + ".0")
+        if pip_main(cmd, env):
+          sys.exit(1)
+        strip_wheel(wheel)
+        second_sha256 = digest(wheel.path())
+        if computed_sha256 != second_sha256:
+          os.rename(wheel.path(), wheel.path() + ".1")
+          print("Wheel build not deterministic:")
+          print("   %s.0: %s" % (wheel.path(), computed_sha256))
+          print("   %s.1: %s" % (wheel.path(), second_sha256))
+          sys.exit(1)
+        os.remove(wheel.path() + ".0")
+    else:
+      # If the user supplied an expected sha256, we must match it.
+      print("Built wheel %s digest %s does not match expected digest %s." % (wheel.path(), computed_sha256, sha256))
+      sys.exit(1)
 
   shutil.rmtree(home)
   return computed_sha256
@@ -490,12 +507,12 @@ def determine_possible_extras(whls):
     for whl in whls
   }
 
-def build_dep_graph(args):
+def build_dep_graph(input_files, build_info):
     pattern = re.compile('[a-zA-Z0-9_-]+')
 
     flatten = lambda l: [item for sublist in l for item in sublist]
     dist_to_lines = collections.defaultdict(list)
-    for i in args.input:
+    for i in input_files:
         with open(i) as f:
             for l in f.readlines():
                 l = l.strip()
@@ -503,15 +520,13 @@ def build_dep_graph(args):
                 if m:
                     dist_to_lines[m.group()].append(l)
 
-    if not args.build_dep:
+    if not build_info:
         return [flatten(dist_to_lines.values())]
 
     deps = collections.defaultdict(list)
-    for i in args.build_dep:
-        k,v = i.split('=')
-        if k not in dist_to_lines:
-            continue
-        deps[k] += dist_to_lines[v]
+    for dist, info in build_info.items():
+      for d in info.get("additional_buildtime_deps", []):
+        deps[dist] += dist_to_lines[d]
 
     graph = {r: set(deps[n]) if n in deps else set() for n,rr in dist_to_lines.items() for r in rr}
     result = list(toposort.toposort(graph))
@@ -551,7 +566,10 @@ def digest(fname):
   return d.hexdigest()
 
 def resolve(args):
-  ordering = build_dep_graph(args)
+  print("Generating %s from %s..." % (args.output, " and ".join(args.input)))
+
+  build_info = ast.literal_eval(args.build_info or '{}')
+  ordering = build_dep_graph(args.input, build_info)
 
   tempdir = tempfile.mkdtemp()
 
@@ -646,6 +664,54 @@ def resolve(args):
         deps = deps.union(transitive_deps(whl_map[d], extra, collected))
     return deps
 
+  wheel_digests = {}
+  try:
+    with open(args.output, 'r') as f:
+      contents = f.read()
+      contents = re.sub(r"^wheels = ", "", contents, flags=re.MULTILINE)
+      wheel_info = ast.literal_eval(contents)
+      wheel_digests.update({k: v["sha256"] for k, v in wheel_info.items() if "sha256" in v})
+  except:
+    pass
+
+  # If user requested digests, we build each wheel again in isolation to get a
+  # deterministic sha256.
+  if args.digests:
+    for w in whls:
+      # If the current (not-yet-updated) requirements.bzl already has a sha256 and it
+      # matches with the sha of the wheel that we bulit during resolve (typical for
+      # binary distributions), then we can just use that.
+      resolved_digest = digest(w.path())
+      if w.name() in wheel_digests:
+        if resolved_digest == wheel_digests[w.name()]:
+          continue
+
+      build_deps = set().union(*[
+        {whl_map[d].path()} | {whl_map[w].path() for w in transitive_deps(whl_map[d])}
+        for d in build_info.get(w.name(), {}).get("additional_buildtime_deps", [])
+      ])
+      build_env = build_info.get(w.name(), {}).get("additional_buildtime_env", [])
+      tempdir = tempfile.mkdtemp()
+      try:
+        sha256 = build_wheel(
+          distribution=w.distribution(),
+          version=w.version(),
+          directory=tempdir,
+          # NOTE: The build-dir here must match the one that we use in the
+          # individual build_wheel() rules later, otherwise the sha256 that we
+          # compute here will not match the output of build_wheel() due to debug
+          # symbols.
+          build_dir="/tmp/pip-build/%s_wheel" % w.repository_name(prefix=args.name),
+          additional_buildtime_env=build_env,
+          additional_buildtime_deps=build_deps,
+          pip_args=args.pip_args,
+          sha256=wheel_digests.get(w.name(), None),
+          resolving=True,
+        )
+        wheel_digests[w.name()] = sha256
+      finally:
+        shutil.rmtree(tempdir)
+
   if args.output_format == 'download':
     # We are generating a checked-in version of requirements.bzl.
     # For determinism, avoid clashes with other pip_import repositories,
@@ -665,6 +731,8 @@ def resolve(args):
     attrs += [("name", quote(lib_repo(wheel)))]
     attrs += [("version", quote(wheel.version()))]
     attrs += [("wheel_name", quote(wheel.basename()))]
+    if args.digests:
+      attrs += [("sha256", quote(wheel_digests[wheel.name()]))]
     url = requirement_download_url(wheel.basename())
     if url:
       attrs += [("urls", '[{}]'.format(quote(url)))]
@@ -702,8 +770,8 @@ parser.set_defaults(func=resolve)
 parser.add_argument('--name', action='store', required=True,
                     help=('The namespace of the import.'))
 
-parser.add_argument('--build-dep', action='append',
-                    help=('Build-time dependency of wheels.'))
+parser.add_argument('--build-info', action='store',
+                    help=('Additional build info as a string-serialized python dict.'))
 
 parser.add_argument('--input', action='append', required=True,
                     help=('The requirements.txt file(s) to import.'))
@@ -717,8 +785,8 @@ parser.add_argument('--output-format', choices=['refer', 'download'], default='r
 parser.add_argument('--directory', action='store', default='.',
                     help=('The directory into which to put .whl files.'))
 
-parser.add_argument('--python', action='store',
-                    help=('The python interpreter to use for building wheels.'))
+parser.add_argument('--digests', action='store_true',
+                    help=('Emit sha256 digests for the bulit wheels, and ensure deterministic build.'))
 
 parser.add_argument('--pip-arg', dest='pip_args', action='append', default=[],
                     help=('Extra arguments to send to pip.'))

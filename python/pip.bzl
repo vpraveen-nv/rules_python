@@ -40,6 +40,7 @@ sh_binary(
     ctx.path(ctx.attr._script),
     "resolve",
     "--name=%s" % ctx.attr.name,
+    "--build-info='%s'" % ctx.attr.requirements_overrides,
     "--pip-arg=--cache-dir=%s" % str(ctx.path("pip-cache")),
   ] + [
     "--input=%s" % str(ctx.path(f)) for f in ctx.attr.requirements
@@ -54,6 +55,8 @@ sh_binary(
         "--output-format=download",
         "--directory=%s" % str(ctx.path("build-directory")),
     ]
+    if ctx.attr.digests:
+        cmd += ["--digests"]
     cmd += ['"$@"']  # Allow users to augment/override flags from command line
 
     ctx.file(
@@ -85,6 +88,7 @@ _pip_import = repository_rule(
         ),
         "requirements_overrides": attr.string(),
         "pip_args": attr.string_list(),
+        "digests": attr.bool(default = False),
         "python": attr.label(
             executable = True,
             cfg = "host",
