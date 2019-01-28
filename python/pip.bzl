@@ -158,6 +158,11 @@ load("{repo}//:requirements.bzl", wheels_{key} = "wheels")
         if k not in all_reqs:
             all_reqs[k] = {{}}
         all_reqs[k]["{key}"] = "@%s//:pkg" % v["name"]
+        for e in v.get("extras", []) + v.get("additional_targets", []):
+            ek = "%s[%s]" % (k, e)
+            if ek not in all_reqs:
+                all_reqs[ek] = {{}}
+            all_reqs[ek]["{key}"] = "@%s//:%s" % (v["name"], e)
 """.format(key=k) for k in ctx.attr.values.keys()])
 
     config_settings = "".join(["""\
@@ -185,6 +190,8 @@ def requirement_{key}(r):
     ctx.file("BUILD.bazel", content="""\
 load("@{name}//:requirements.bzl", "proxy_install")
 package(default_visibility = ["//visibility:public"])
+
+py_library(name = "empty")
 
 proxy_install()
 
@@ -228,24 +235,26 @@ def proxy_install():
     all_reqs = {{}}
 {gathers}
     for req, gathers in all_reqs.items():
-        conditions = {{k: [v] for k, v in gathers.items()}}
+        conditions = {{k: v for k, v in gathers.items()}}
         name = _sanitize(req)
-        native.py_library(
+        native.alias(
             name = name,
-            deps = select(conditions),
+            actual = select(conditions),
         )
         for py_version, label in gathers.items():
-            native.py_library(
+            native.alias(
                 name = py_version + "__" + name,
-                deps = select({{
-                    py_version: [label],
-                    "//conditions:default": []
+                actual = select({{
+                    py_version: label,
+                    "//conditions:default": "@{name}//:empty",
                 }}),
             )
 
 
-def requirement(r):
-    return "@{name}//:%s" % _sanitize(r).lower()
+def requirement(name, target = "pkg", binary = None):
+    if target != "pkg":
+        name = "%s[%s]" % (name, target)
+    return "@{name}//:%s" % _sanitize(name).lower()
 {specific_macros}
 """.format(loads=loads, gathers=gathers, specific_macros=specific_macros, name=ctx.attr.name))
 
