@@ -13,26 +13,10 @@
 # limitations under the License.
 """Import pip requirements into Bazel."""
 
-def _expand_deps_to_dict(d):
-    return "".join(['\n    "{}": [{}],'.format(k, ", ".join(['"{}"'.format(v) for v in vv])) for k, vv in d.items()])
-
-def _expand_env_to_dict(d):
-    return "".join(['\n    "{}": {{{}}},'.format(k, ", ".join(['"{}": "{}"'.format(*v.split('=')) for v in vv])) for k, vv in d.items()])
-
-def _expand_build_deps_to_dict(d):
-    return "".join(['\n    "{}": "{}",'.format(k, v) for k, v in d.items()])
-
-def _expand_array(array):
-    return "".join(['\n    "{}",'.format(item) for item in array])
-
-def _pip_import_impl(repository_ctx):
+def _pip_import_impl(ctx):
   """Core implementation of pip_import."""
 
-  # Add an empty top-level BUILD file.
-  # This is because Bazel requires BUILD files along all paths accessed
-  # via //this/sort/of:path and we wouldn't be able to load our generated
-  # requirements.bzl without it.
-  repository_ctx.file("BUILD", """
+  ctx.file("BUILD", """
 package(default_visibility = ["//visibility:public"])
 sh_binary(
     name = "update",
@@ -40,57 +24,56 @@ sh_binary(
 )
 """)
 
-  repository_ctx.file("python/BUILD", "")
-  repository_ctx.template(
-    "python/whl.bzl",
-    Label("//rules_python:whl.bzl.tpl"),
+  ctx.template(
+    "requirements.bzl",
+    Label("//rules_python:requirements.bzl.tpl"),
     substitutions = {
-      "%{repo}": repository_ctx.name,
-      "%{pip_args}": ", ".join(["\"%s\"" % arg for arg in repository_ctx.attr.pip_args]),
-      "%{requirements}": str(repository_ctx.attr.requirements_bzl),
-      "%{additional_buildtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_buildtime_deps),
-      "%{additional_buildtime_env}": _expand_env_to_dict(repository_ctx.attr.additional_buildtime_env),
-      "%{additional_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.additional_runtime_deps),
-      "%{additional_build_content}": _expand_build_deps_to_dict(repository_ctx.attr.additional_build_content),
-      "%{remove_runtime_deps}": _expand_deps_to_dict(repository_ctx.attr.remove_runtime_deps),
-      "%{patch_runtime}": _expand_deps_to_dict(repository_ctx.attr.patch_runtime),
+      "%{repo}": ctx.name,
+      "%{python}": str(ctx.attr.python) if ctx.attr.python else "",
+      "%{pip_args}": ", ".join(["\"%s\"" % arg for arg in ctx.attr.pip_args]),
+      "%{additional_attributes}": ctx.attr.requirements_overrides or "{}",
     })
 
-  repository_ctx.template(
-    "update.sh",
-    Label("//rules_python:update.sh.tpl"),
-    substitutions = {
-      "%{python}": str(repository_ctx.path(repository_ctx.attr.python)) if repository_ctx.attr.python else "python",
-      "%{python_label}": str(repository_ctx.attr.python) if repository_ctx.attr.python else "",
-      "%{piptool}": str(repository_ctx.path(repository_ctx.attr._script)),
-      "%{name}": repository_ctx.attr.name,
-      "%{build_dependencies}": " ".join(['%s=%s' % (k, vv) for k,v in repository_ctx.attr.additional_buildtime_deps.items() for vv in v]),
-      "%{requirements_txt}": " ".join(["\"%s\"" % str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]),
-      "%{requirements_bzl}": str(repository_ctx.path(repository_ctx.attr.requirements_bzl)) if repository_ctx.attr.requirements_bzl else "",
-      "%{directory}": str(repository_ctx.path("")),
-      "%{pip_args}": " ".join(["\"%s\"" % arg for arg in repository_ctx.attr.pip_args]),
-    },
-    executable=True,
-  )
 
-  if repository_ctx.attr.requirements_bzl:
-    repository_ctx.symlink(repository_ctx.path(repository_ctx.attr.requirements_bzl), "requirements.bzl")
-  else:
-    cmd = [
-        "python", repository_ctx.path(repository_ctx.attr._script), "resolve",
-        "--name", repository_ctx.attr.name,
-        "--output", repository_ctx.path("requirements.bzl"),
-        "--directory", repository_ctx.path(""),
+  cmd = [
+    ctx.path(ctx.attr.python) if ctx.attr.python else "python",
+    ctx.path(ctx.attr._script),
+    "resolve",
+    "--name=%s" % ctx.attr.name,
+    "--pip-arg=--cache-dir=%s" % str(ctx.path("pip-cache")),
+  ] + [
+    "--input=%s" % str(ctx.path(f)) for f in ctx.attr.requirements
+  ] + [
+    "--pip-arg=%s" % x for x in ctx.attr.pip_args
+  ]
+
+
+  if ctx.attr.requirements_bzl:
+    cmd += [
+        "--output=%s" % str(ctx.path(ctx.attr.requirements_bzl)),
+        "--output-format=download",
+        "--directory=%s" % str(ctx.path("build-directory")),
     ]
-    cmd += ["--input=" + str(repository_ctx.path(f)) for f in repository_ctx.attr.requirements]
-    cmd += ["--"] + repository_ctx.attr.pip_args
-    cmd += ["--cache-dir", repository_ctx.path("pip-cache")]
-    result = repository_ctx.execute(cmd, quiet=False)
+    cmd += ['"$@"']  # Allow users to augment/override flags from command line
+
+    ctx.file(
+        "update.sh",
+        "#!/bin/bash\n%s\n" % " ".join(cmd),
+        executable = True,
+    )
+
+    ctx.symlink(ctx.path(ctx.attr.requirements_bzl), "requirements.gen.bzl")
+  else:
+    cmd += [
+        "--output", ctx.path("requirements.gen.bzl"),
+        "--directory", ctx.path(""),
+    ]
+    result = ctx.execute(cmd, quiet=False)
 
     if result.return_code:
         fail("pip_import failed: %s (%s)" % (result.stdout, result.stderr))
 
-pip_import = repository_rule(
+_pip_import = repository_rule(
     attrs = {
         "requirements": attr.label_list(
             allow_files = True,
@@ -100,13 +83,8 @@ pip_import = repository_rule(
             allow_files = True,
             single_file = True,
         ),
+        "requirements_overrides": attr.string(),
         "pip_args": attr.string_list(),
-        "additional_buildtime_deps": attr.string_list_dict(),
-        "additional_buildtime_env": attr.string_list_dict(),
-        "additional_runtime_deps": attr.string_list_dict(),
-        "additional_build_content": attr.string_dict(),
-        "remove_runtime_deps": attr.string_list_dict(),
-        "patch_runtime": attr.string_list_dict(),
         "python": attr.label(
             executable = True,
             cfg = "host",
@@ -119,6 +97,14 @@ pip_import = repository_rule(
     },
     implementation = _pip_import_impl,
 )
+
+def pip_import(**kwargs):
+    if "requirements_overrides" in kwargs:
+        # Overrides are serialized to string and passed to the rule, since
+        # rules cannot have deep dicts.
+        kwargs["requirements_overrides"] = str(kwargs["requirements_overrides"])
+    _pip_import(**kwargs)
+
 
 """A rule for importing <code>requirements.txt</code> dependencies into Bazel.
 
@@ -164,14 +150,14 @@ Args:
 
 def _pip_version_proxy_impl(ctx):
     loads = "".join(["""\
-load("{repo}//:requirements.bzl", requirements_map_{key} = "requirements_map")
+load("{repo}//:requirements.bzl", wheels_{key} = "wheels")
 """.format(repo=v, key=k) for k, v in ctx.attr.values.items()])
 
     gathers = "".join(["""\
-    for req, label in requirements_map_{key}.items():
-        if req not in all_reqs:
-            all_reqs[req] = {{}}
-        all_reqs[req]["{key}"] = label
+    for k, v in wheels_{key}.items():
+        if k not in all_reqs:
+            all_reqs[k] = {{}}
+        all_reqs[k]["{key}"] = "@%s//:pkg" % v["name"]
 """.format(key=k) for k in ctx.attr.values.keys()])
 
     config_settings = "".join(["""\

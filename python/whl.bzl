@@ -19,7 +19,7 @@ load(
     _sha256 = "sha256",
 )
 
-def _extract_wheels(ctx, wheels):
+def _extract_wheel(ctx, wheel):
     python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
     args = [
         python,
@@ -29,7 +29,7 @@ def _extract_wheels(ctx, wheels):
         "--repository", ctx.attr.repository,
     ]
 
-    args += ["--whl=%s" % w for w in wheels]
+    args += ["--whl=%s" % wheel]
     args += ["--add-dependency=%s" % d for d in ctx.attr.additional_runtime_deps]
     args += ["--drop-dependency=%s" % d for d in ctx.attr.remove_runtime_deps]
     if ctx.attr.additional_build_content:
@@ -101,8 +101,7 @@ def _build_wheel(ctx):
     # Compute a hash from the build time dependencies + env, and use that in the cache
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
-    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps] +
-                          ["%s=%s" % (k, v) for k, v in ctx.attr.buildtime_env.items()])
+    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps] + ctx.attr.additional_buildtime_env)
     cmd = [python, "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
@@ -160,27 +159,33 @@ def _download_or_build_wheel_impl(ctx):
         fail("whl not found: %s (%s)" % (result.stdout, result.stderr))
     ctx.file("BUILD", "")
 
+
+_download_or_build_wheel_attrs = {
+    "distribution": attr.string(),
+    "version": attr.string(),
+    "urls": attr.string_list(),
+    "sha256": attr.string(),
+    "local_path": attr.string(),
+    "buildtime_deps": attr.label_list(
+        allow_files=["*.whl"],
+    ),
+    "additional_buildtime_env": attr.string_list(),
+    "wheel_name": attr.string(),
+    "pip_args": attr.string_list(),
+    "python": attr.label(
+        executable = True,
+        cfg = "host",
+    ),
+    "_piptool": attr.label(
+        executable = True,
+        default = Label("//tools:piptool.par"),
+        cfg = "host",
+    ),
+}
+
+
 download_or_build_wheel = repository_rule(
-    attrs = {
-        "requirement": attr.string(),
-        "urls": attr.string_list(),
-        "local_path": attr.string(),
-        "buildtime_deps": attr.label_list(
-            allow_files=["*.whl"],
-        ),
-        "buildtime_env": attr.string_dict(),
-        "wheel_name": attr.string(),
-        "pip_args": attr.string_list(),
-        "python": attr.label(
-            executable = True,
-            cfg = "host",
-        ),
-        "_piptool": attr.label(
-            executable = True,
-            default = Label("//tools:piptool.par"),
-            cfg = "host",
-        ),
-    },
+    attrs = _download_or_build_wheel_attrs,
     implementation = _download_or_build_wheel_impl,
     environ = [
         "BAZEL_WHEEL_CACHE",
@@ -189,35 +194,33 @@ download_or_build_wheel = repository_rule(
     ],
 )
 
+def _extract_wheel_impl(ctx):
+    """Core implementation of extract_wheel."""
+    ctx.symlink(ctx.attr.wheel, ctx.attr.wheel.name)
+    _extract_wheel(ctx, ctx.path(ctx.attr.wheel))
 
-def _extract_wheels_impl(ctx):
-    """Core implementation of extract_wheels."""
-    for w in ctx.attr.wheels:
-        ctx.symlink(w, w.name)
-    _extract_wheels(ctx, [ctx.path(w) for w in ctx.attr.wheels])
+_extract_wheel_attrs = {
+    "wheel": attr.label(allow_files = True),
+    "additional_runtime_deps": attr.string_list(),
+    "additional_build_content":  attr.label(allow_single_file=True),
+    "remove_runtime_deps": attr.string_list(),
+    "patch_runtime": attr.label_list(allow_files=True),
+    "repository":  attr.string(),
+    "extras": attr.string_list(),
+    "python": attr.label(
+        executable = True,
+        cfg = "host",
+    ),
+    "_piptool": attr.label(
+        executable = True,
+        default = Label("//tools:piptool.par"),
+        cfg = "host",
+    ),
+}
 
-extract_wheels = repository_rule(
-    attrs = {
-        "wheels": attr.label_list(
-            allow_files = True,
-        ),
-        "additional_runtime_deps": attr.string_list(),
-        "additional_build_content":  attr.label(allow_single_file=True),
-        "remove_runtime_deps": attr.string_list(),
-        "patch_runtime": attr.label_list(allow_files=True),
-        "repository":  attr.string(),
-        "extras": attr.string_list(),
-        "python": attr.label(
-            executable = True,
-            cfg = "host",
-        ),
-        "_piptool": attr.label(
-            executable = True,
-            default = Label("//tools:piptool.par"),
-            cfg = "host",
-        ),
-    },
-    implementation = _extract_wheels_impl,
+extract_wheel = repository_rule(
+    attrs = _extract_wheel_attrs,
+    implementation = _extract_wheel_impl,
 )
 
 
@@ -247,3 +250,12 @@ Args:
   extras: A subset of the "extras" available from this <code>.whl</code> for which
     <code>requirements</code> has the dependencies.
 """
+
+wheel_rules = struct(
+    download_or_build_wheel = struct(
+        attrs = _download_or_build_wheel_attrs,
+    ),
+    extract_wheel = struct(
+        attrs = _extract_wheel_attrs,
+    ),
+)

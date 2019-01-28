@@ -186,7 +186,7 @@ parser = subparsers.add_parser('build', help='Download or build a single wheel, 
 parser.set_defaults(func=build)
 
 parser.add_argument('--directory', action='store', default='.',
-                    help=('The directory into which to put .whl files.'))
+                    help=('The directory into which to put .whl file.'))
 
 parser.add_argument('--cache-key', action='store',
                     help=('The cache key to use when looking up .whl file from cache.'))
@@ -199,26 +199,20 @@ parser.add_argument('args', nargs=argparse.REMAINDER,
 # ---------------
 
 def extract(args):
-  whls = [Wheel(w) for w in args.whl]
-  whl = whls[0]
+  # Extract the files into the current directory
+  whl = Wheel(args.whl)
+  whl.expand(args.directory)
 
   extra_deps = args.add_dependency or []
   drop_deps = {d: None for d in args.drop_dependency or []}
 
-  # Extract the files into the current directory
-  # TODO(conrado): do one expansion for each extra? It might be easier to create completely new
-  # wheel repos
-  for w in whls:
-    w.expand(args.directory)
-
-  for root, dirs, files in os.walk(args.directory):
+  for root, _, files in os.walk(args.directory):
     if root != args.directory and '__init__.py' not in files:
       open(os.path.join(root, '__init__.py'), 'a').close()
 
   imports = ['.']
 
-  wheel_map = {w.name(): w for w in whls}
-  external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in wheel_map and d not in drop_deps]
+  external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in drop_deps]
 
   contents = []
   add_build_content = args.add_build_content or []
@@ -297,7 +291,7 @@ py_library(
 parser = subparsers.add_parser('extract', help='Extract one or more wheels as a py_library')
 parser.set_defaults(func=extract)
 
-parser.add_argument('--whl', action='append', required=True,
+parser.add_argument('--whl', action='store', required=True,
                     help=('The .whl file we are expanding.'))
 
 parser.add_argument('--repository', action='store', required=True,
@@ -443,10 +437,7 @@ def resolve(args):
               #  pip_args += ["--requirement=" + i for i in args.input]
               pip_args += ["--requirement=" + f.name]
               pip_args += ["--constraint=" + f2.name]
-              if len(args.args) > 0 and args.args[0] == '--':
-                pip_args += args.args[1:]
-              else:
-                pip_args += args.args
+              pip_args += args.pip_args
               # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
               if pip_main(pip_args):
                 shutil.rmtree(tempdir)
@@ -527,7 +518,7 @@ def resolve(args):
     if url:
       attrs += [("urls", '[{}]'.format(quote(url)))]
     if args.output_format != 'download':
-      attrs += [("whl", '"@{}//:{}"'.format(args.name, wheel.basename()))]
+      attrs += [("wheel", '"@{}//:{}"'.format(args.name, wheel.basename()))]
     extras = ', '.join([quote(extra) for extra in sorted(possible_extras.get(wheel, []))])
     if extras != '':
       attrs += [("extras", '[{}]'.format(extras))]
@@ -539,67 +530,20 @@ def resolve(args):
     if transitive_runtime_deps != '':
       attrs += [("transitive_runtime_deps", '[{}]'.format(transitive_runtime_deps))]
 
-    # Indentation here matters.  whl_library must be within the scope
-    # of the function below.  We also avoid reimporting an existing WHL.
     return """"{}": {{
-            {},
-        }},""".format(wheel.name(), ",\n            ".join(['"{}": {}'.format(k, v) for k, v in attrs]))
-
-  requirements_map = '\n    '.join([
-    '\n    '.join([
-      '"{name}": "@{repo}//:pkg",\n    "{name}:dirty": "@{repo}_dirty//:pkg",'.format(
-          name=whl.name(), repo=lib_repo(whl))
-    ] + [
-      # For every extra that is possible from this requirements.txt
-      '"{name}[{extra_lower}]": "@{repo}//:{extra}",\n    "{name}:dirty[{extra_lower}]": "@{repo}_dirty//:{extra}",'.format(
-        name=whl.name(), repo=lib_repo(whl), extra=extra, extra_lower=extra.lower())
-      for extra in sorted(possible_extras.get(whl, []))
-    ])
-    for whl in whls
-  ])
+        {},
+    }},""".format(wheel.name(), ",\n        ".join(['"{}": {}'.format(k, v) for k, v in attrs]))
 
   with open(args.output, 'w') as f:
     f.write("""\
 # Install pip requirements.
 #
 {comment}
-
-load("@{name}//python:whl.bzl", "whl_library")
-
-_requirements = {{
-    {requirements_map}
+wheels = {{
+    {wheels}
 }}
-
-all_requirements = _requirements.values()
-requirements_map = _requirements
-
-def requirement_repo(name):
-    return requirement(name).split(":")[0]
-
-def requirement(name, binary = None):
-    key = name.lower()
-    if key not in _requirements:
-        fail("Could not find pip-provided dependency: '%s'" % name)
-    if binary:
-        return _requirements[key].split(":")[0] + ":entrypoint_" + binary
-    return _requirements[key]
-
-def pip_install():
-    all_libs = {{
-        {all_libs}
-    }}
-
-    for key, attributes in all_libs.items():
-        whl_library(
-            key = key,
-            all_libs = all_libs,{python}
-            **attributes
-        )
 """.format(comment='\n'.join(['# Generated from ' + i for i in args.input]),
-           name=args.name,
-           all_libs='\n        '.join(map(whl_library, whls)),
-           requirements_map=requirements_map,
-           python='\n            python = "{}",'.format(args.python) if args.python else ''))
+           wheels='\n    '.join(map(whl_library, whls))))
 
 parser = subparsers.add_parser('resolve', help='Resolve requirements.bzl from requirements.txt')
 parser.set_defaults(func=resolve)
@@ -625,7 +569,7 @@ parser.add_argument('--directory', action='store', default='.',
 parser.add_argument('--python', action='store',
                     help=('The python interpreter to use for building wheels.'))
 
-parser.add_argument('args', nargs=argparse.REMAINDER,
+parser.add_argument('--pip-arg', dest='pip_args', action='append', default=[],
                     help=('Extra arguments to send to pip.'))
 
 
