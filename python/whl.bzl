@@ -116,7 +116,7 @@ def _download_or_build_wheel_impl(ctx):
     result = ctx.execute(["sh", "-c", "ls ./%s" % ctx.attr.wheel_name])
     if result.return_code:
         fail("whl not found: %s (%s)" % (result.stdout, result.stderr))
-    ctx.file("BUILD", "")
+    ctx.file("BUILD", "exports_files([\"%s\"])" % ctx.attr.wheel_name)
 
 
 _download_or_build_wheel_attrs = {
