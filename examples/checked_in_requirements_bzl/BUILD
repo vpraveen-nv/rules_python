@@ -22,18 +22,27 @@ py_test(
     name = "version_test",
     srcs = ["version_test.py"],
     deps = [
-        requirement("pip"),
-        requirement("google-cloud:dirty"),
-        requirement("scikit-learn"),
+        #requirement("pip"),
+        #requirement("google-cloud"),
+        #requirement("scikit-learn"),
         #requirement("pycuda"),
         #requirement("botocore"),
-        requirement("pytest-mock"),
-        requirement("keras"),
+        #requirement("pytest-mock"),
+        #requirement("keras"),
         #requirement("tensorflow"),
+        requirement("numpy"),
+        requirement("jsonnet"),
+        requirement("sqlalchemy"),
+        requirement("pyhive"),
+        requirement("networkx"),
+
+        requirement("tensorflow"),
+        requirement("horovod"),
+
     ],
 )
 
-alias(
-    name = "pytest",
-    actual = requirement("pytest", binary="pytest"),
-)
+#alias(
+#    name = "pytest",
+#    actual = requirement("pytest", binary="pytest"),
+#)
