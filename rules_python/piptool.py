@@ -460,6 +460,11 @@ def resolve(args):
   env = {}
   env['PYTHONPATH'] = tempdir + ':' + existing_pythonpath
 
+  env["HOME"] = tempdir
+  with open(os.path.join(tempdir, ".pydistutils.cfg"), "w") as f:
+    # WAR for macOS: https://github.com/Homebrew/brew/issues/837
+    f.write("[install]\nprefix=\n")
+
   for i, o in enumerate(ordering):
       # Install the wheels since they can be dependent at build time
       for _, _, filelist in os.walk(args.directory):
