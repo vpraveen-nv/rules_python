@@ -55,8 +55,6 @@ def _build_wheel(ctx):
     # Resolve the paths to the dependency wheels to force them to be created.
     # This may cause re-starting this repository rule, see:
     #  https://docs.bazel.build/versions/master/skylark/repository_rules.html#when-is-the-implementation-function-executed
-    # We don't actually use the wheels themselves, just their path where the
-    # wheel has been extracted (see below).
     paths = [ctx.path(d) for d in ctx.attr.buildtime_deps]
 
     # Check that python headers are installed. Otherwise some wheels may be built
