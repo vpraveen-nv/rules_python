@@ -232,9 +232,8 @@ def build_wheel(distribution,
           sys.exit(1)
         os.remove(wheel.path() + ".0")
     else:
-      # If the user supplied an expected sha256, we must match it.
-      print("Built wheel %s digest %s does not match expected digest %s." % (wheel.path(), computed_sha256, sha256))
-      sys.exit(1)
+      # If the user supplied an expected sha256, the built wheel should match it.
+      print("\033[0;33mWARNING:\033[0m Built wheel %s digest %s does not match expected digest %s." % (wheel.path(), computed_sha256, sha256))
 
   shutil.rmtree(home)
   return computed_sha256
