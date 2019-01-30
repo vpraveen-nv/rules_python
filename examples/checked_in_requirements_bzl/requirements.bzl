@@ -7,7 +7,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__absl_py_0_7_0",
         "version": "0.7.0",
         "wheel_name": "absl_py-0.7.0-py2-none-any.whl",
-        "sha256": "8352eeedf369f1bc99c3d0cef990edc73f90d3cdf84d8e8039b05ed489dab7e3",
+        "sha256": "2c4daee4c57b7085a7b1f48dc7eccd0de30ac9e5d252f7084ee142bd1a3fbe0b",
     },
     "astor": {
         "name": "examples_checked_in_requirements_bzl__astor_0_7_1",
@@ -25,7 +25,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__backports_ssl_match_hostname_3_5_0_1",
         "version": "3.5.0.1",
         "wheel_name": "backports.ssl_match_hostname-3.5.0.1-py2-none-any.whl",
-        "sha256": "7690d36d45ee6f5eb8df573f024b888af43297e3a9d51a202acac57a5a9f997a",
+        "sha256": "7108b3a3f6b4854964fec080199d0d02ef0dc8adaff0a2c38ac031537faf95f8",
     },
     "backports.weakref": {
         "name": "examples_checked_in_requirements_bzl__backports_weakref_1_0_post1",
@@ -61,7 +61,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__future_0_17_1",
         "version": "0.17.1",
         "wheel_name": "future-0.17.1-py2-none-any.whl",
-        "sha256": "ad16a51b2bff7537c08498e8568e827c24f25c62f7cbbcf06c2486ceb909af81",
+        "sha256": "05f6671ccebbf3dbf11ced962f04d904b7ec6bbab36eb4de5fd845f3e3f84387",
     },
     "futures": {
         "name": "examples_checked_in_requirements_bzl__futures_3_2_0",
@@ -73,7 +73,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__gast_0_2_2",
         "version": "0.2.2",
         "wheel_name": "gast-0.2.2-py2-none-any.whl",
-        "sha256": "a5a5c42f28817212ea436a5466500cc826252f8b36eec34a85f3eb9bcd7e773f",
+        "sha256": "5cd0d5ffc6c6131f5ef3c13436187e0b167f04f51ae3ce0fe9273f1fc9210838",
     },
     "grpcio": {
         "name": "examples_checked_in_requirements_bzl__grpcio_1_18_0",
@@ -91,14 +91,14 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__horovod_0_13_11",
         "version": "0.13.11",
         "wheel_name": "horovod-0.13.11-cp27-cp27mu-linux_x86_64.whl",
-        "sha256": "ecba1dad380cfc58b9e298b57de507274b1dedab6438d98ed2df06e3fe7e67b5",
+        "sha256": "aa6d85f80855fceb0df55fb9ee8c1efe91477e90ba07729a7d7a6cbec9421a12",
         "build_deps": ["absl-py", "astor", "backports.weakref", "cffi", "enum34", "funcsigs", "futures", "gast", "grpcio", "h5py", "keras-applications", "keras-preprocessing", "markdown", "mock", "numpy", "pandas", "pbr", "protobuf", "pycparser", "python-dateutil", "pytz", "setuptools", "six", "tensorboard", "tensorflow", "termcolor", "werkzeug", "wheel"],
     },
     "jsonnet": {
         "name": "examples_checked_in_requirements_bzl__jsonnet_0_11_2",
         "version": "0.11.2",
         "wheel_name": "jsonnet-0.11.2-cp27-cp27mu-linux_x86_64.whl",
-        "sha256": "d82434dddc3594ba4603a380090aefbc134497d8a70048f9a4e82c72f2adc7b6",
+        "sha256": "d380656573148de54f2eeb2f6d6b3274b80d2aec4abaca079280100aa6417c52",
     },
     "keras-applications": {
         "name": "examples_checked_in_requirements_bzl__Keras_Applications_1_0_7",
@@ -128,8 +128,8 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__networkx_2_2",
         "version": "2.2",
         "wheel_name": "networkx-2.2-py2.py3-none-any.whl",
-        "sha256": "8b8f0d30cc135c396949286c315e2c09aaa3df0cba0db938229afb313b9a74ff",
-        "extras": ["numpy", "pandas"],
+        "sha256": "d9d247182d4d8a8f1802f71bf0c443554e0a9a3e8b9ca546f92f5e0cfb1ca8c1",
+        "extras": ["numpy", "pandas", "scipy"],
     },
     "numpy": {
         "name": "examples_checked_in_requirements_bzl__numpy_1_16_0",
@@ -165,13 +165,13 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__pycparser_2_19",
         "version": "2.19",
         "wheel_name": "pycparser-2.19-py2.py3-none-any.whl",
-        "sha256": "5d9648d849e99d477ce4033716a779346f4222ee443e04727503a638f3092444",
+        "sha256": "fdeec454ad279b8151021a4435c5089832a2fad15828f103259036222eb91d82",
     },
     "pyhive": {
         "name": "examples_checked_in_requirements_bzl__PyHive_0_6_1",
         "version": "0.6.1",
         "wheel_name": "PyHive-0.6.1-py2-none-any.whl",
-        "sha256": "a13c7518cdb2c89e17936a991415d93aabf559e891039a3cb91fc7a9acd40054",
+        "sha256": "5e5d4e1bb7151fb36d23ff35131d4bbb93b7b6bd5fa6e7eac43d3ff83d351275",
         "extras": ["sqlalchemy"],
     },
     "python-dateutil": {
@@ -185,6 +185,12 @@ wheels = {
         "version": "2018.9",
         "wheel_name": "pytz-2018.9-py2.py3-none-any.whl",
         "sha256": "32b0891edff07e28efe91284ed9c31e123d84bea3fd98e1f72be2508f43ef8d9",
+    },
+    "scipy": {
+        "name": "examples_checked_in_requirements_bzl__scipy_1_1_0",
+        "version": "1.1.0",
+        "wheel_name": "scipy-1.1.0-cp27-cp27mu-manylinux1_x86_64.whl",
+        "sha256": "08237eda23fd8e4e54838258b124f1cd141379a5f281b0a234ca99b38918c07a",
     },
     "setuptools": {
         "name": "examples_checked_in_requirements_bzl__setuptools_40_7_1",
@@ -203,7 +209,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__SQLAlchemy_1_1_15",
         "version": "1.1.15",
         "wheel_name": "SQLAlchemy-1.1.15-cp27-cp27mu-linux_x86_64.whl",
-        "sha256": "f49290bef79b5797b166999ca63ca6c1afe70eb51518e6822e48c9251362ba66",
+        "sha256": "06c0c4b4f010c63d39c7c384d9fead1e959fafc7b161030baf4aec3ef4e1079f",
     },
     "tensorboard": {
         "name": "examples_checked_in_requirements_bzl__tensorboard_1_12_2",
@@ -221,7 +227,7 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__termcolor_1_1_0",
         "version": "1.1.0",
         "wheel_name": "termcolor-1.1.0-py2-none-any.whl",
-        "sha256": "f4369cf998737829f92eb6aa76662a212bc7c7039fd9ed7d83468bd851abe64d",
+        "sha256": "232e3cd57fd206fd0e194ca73194d5bf23e65b350166a6877538c29a76727a6a",
     },
     "werkzeug": {
         "name": "examples_checked_in_requirements_bzl__Werkzeug_0_14_1",
@@ -240,6 +246,6 @@ wheels = {
         "name": "examples_checked_in_requirements_bzl__wrapt_1_11_1",
         "version": "1.11.1",
         "wheel_name": "wrapt-1.11.1-cp27-cp27mu-linux_x86_64.whl",
-        "sha256": "578bc77e810965d4e6f27295def82a699e7b0e2eca0923b8fc0b28a0d4f0ff59",
+        "sha256": "38249b4c3f557b9cef9dfbd0c48939adeadeb37cb48e7e71f3f32ab48da6191f",
     },
 }

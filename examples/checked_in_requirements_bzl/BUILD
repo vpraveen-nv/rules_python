@@ -26,9 +26,10 @@ py_test(
         requirement("jsonnet"),
         requirement("networkx"),
         requirement("numpy"),
+        requirement("nvidia-ml-py"),
         requirement("pyhive"),
+        requirement("scipy"),
         requirement("sqlalchemy"),
         requirement("tensorflow"),
-        requirement("nvidia-ml-py"),
     ],
 )

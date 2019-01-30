@@ -346,10 +346,6 @@ def extract(args):
   extra_deps = args.add_dependency or []
   drop_deps = {d: None for d in args.drop_dependency or []}
 
-  for root, _, files in os.walk(args.directory):
-    if root != args.directory and '__init__.py' not in files:
-      open(os.path.join(root, '__init__.py'), 'a').close()
-
   imports = ['.']
 
   external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in drop_deps]
@@ -587,6 +583,10 @@ def resolve(args):
     # WAR for macOS: https://github.com/Homebrew/brew/issues/837
     f.write("[install]\nprefix=\n")
 
+  # Process .pth files of the extracted build deps.
+  with open(os.path.join(tempdir, "sitecustomize.py"), "w") as f:
+    f.write("import site; import os; site.addsitedir(os.path.dirname(__file__))")
+
   for i, o in enumerate(ordering):
       # Install the wheels since they can be dependent at build time
       for _, _, filelist in os.walk(args.directory):
@@ -597,12 +597,6 @@ def resolve(args):
             if pip_main(pip_args, env):
               shutil.rmtree(tempdir)
               sys.exit(1)
-
-      # Fake init files for the degenerate packages
-      for dirname, _, filelist in os.walk(tempdir):
-          if '__init__.py' not in filelist:
-              with open(os.path.join(dirname, '__init__.py'), 'w') as f:
-                  pass
 
       with tempfile.NamedTemporaryFile(mode='w+') as f:
           with tempfile.NamedTemporaryFile(mode='w+') as f2:

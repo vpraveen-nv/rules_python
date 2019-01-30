@@ -12,23 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pip
-import unittest
-
-
-class VersionTest(unittest.TestCase):
-
-  def test_version(self):
-    self.assertEqual(pip.__version__, '9.0.0')
-
-import keras as k
-print(k)
-
-import google.auth as auth
-print(auth)
-
-import google.cloud as cl
-print(cl)
-
-if __name__ == '__main__':
-  unittest.main()
+import pynvml
+from scipy.stats import kendalltau
