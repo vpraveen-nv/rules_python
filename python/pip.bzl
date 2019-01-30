@@ -40,7 +40,7 @@ sh_binary(
     ctx.path(ctx.attr._script),
     "resolve",
     "--name=%s" % ctx.attr.name,
-    "--build-info='%s'" % ctx.attr.requirements_overrides,
+    "--build-info", "%s" % ctx.attr.requirements_overrides,
     "--pip-arg=--cache-dir=%s" % str(ctx.path("pip-cache")),
   ] + [
     "--input=%s" % str(ctx.path(f)) for f in ctx.attr.requirements
@@ -57,11 +57,10 @@ sh_binary(
     ]
     if ctx.attr.digests:
         cmd += ["--digests"]
-    cmd += ['"$@"']  # Allow users to augment/override flags from command line
 
     ctx.file(
         "update.sh",
-        "#!/bin/bash\n%s\n" % " ".join(cmd),
+        "#!/bin/bash\n'%s' \"$@\"\n" % "' '".join(cmd),
         executable = True,
     )
 
@@ -102,11 +101,14 @@ _pip_import = repository_rule(
     implementation = _pip_import_impl,
 )
 
+def _dict_to_json(d):
+    return struct(**{k: v for k, v in d.items()}).to_json()
+
 def pip_import(**kwargs):
     if "requirements_overrides" in kwargs:
-        # Overrides are serialized to string and passed to the rule, since
-        # rules cannot have deep dicts.
-        kwargs["requirements_overrides"] = str(kwargs["requirements_overrides"])
+        # Overrides are serialized to json and passed to the rule, since
+        # rules cannot have deep dicts as attributes.
+        kwargs["requirements_overrides"] = _dict_to_json(kwargs["requirements_overrides"])
     _pip_import(**kwargs)
 
 

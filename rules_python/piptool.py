@@ -567,8 +567,11 @@ def digest(fname):
 
 def resolve(args):
   print("Generating %s from %s..." % (args.output, " and ".join(args.input)))
+  print(args)
 
-  build_info = ast.literal_eval(args.build_info or '{}')
+  # Parse build_info - this is the contents of "requirements_overrides" attribute
+  # passed by the user, serialized to json.
+  build_info = json.loads(args.build_info or '{}')
   ordering = build_dep_graph(args.input, build_info)
 
   tempdir = tempfile.mkdtemp()
