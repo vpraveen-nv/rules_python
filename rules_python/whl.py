@@ -38,27 +38,6 @@ class Wheel(object):
 
   def __init__(self, path):
     self._path = path
-    self._extra_deps = []
-    self._extra_buildtime_deps = []
-    self._extra_runtime_deps = []
-
-  def add_extra_buildtime_deps(self, deps):
-    self._extra_buildtime_deps += deps
-
-  def add_extra_runtime_deps(self, deps):
-    self._extra_runtime_deps += deps
-
-  def add_extra_deps(self, deps):
-    self._extra_deps += deps
-
-  def get_extra_buildtime_deps(self):
-    return sorted(list(set(self._extra_buildtime_deps)))
-
-  def get_extra_runtime_deps(self):
-    return sorted(list(set(self._extra_runtime_deps)))
-
-  def get_extra_deps(self):
-    return sorted(list(set(self._extra_deps)))
 
   def path(self):
     return self._path
