@@ -177,6 +177,7 @@ wheel_overrides = {
     },
     "keras-preprocessing": {
         "remove_runtime_deps": ["keras", "keras-preprocessing"],
+        "additional_runtime_deps": ["pandas"],
     },
     "keras": {
         "remove_runtime_deps": ["keras"],
