@@ -20,6 +20,12 @@ load(
 )
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "patch")
+load("//python:version_check.bzl", "parse_bazel_version")
+
+def _report_progress(ctx, status):
+    if parse_bazel_version(native.bazel_version) >= parse_bazel_version("0.21"):
+        ctx.report_progress(status)
+
 
 def _extract_wheel(ctx, wheel):
     python = ctx.path(ctx.attr.python) if ctx.attr.python else "python"
@@ -41,6 +47,7 @@ def _extract_wheel(ctx, wheel):
     # Add our sitecustomize.py that ensures all .pth files are run.
     args += ["--add-dependency=@io_bazel_rules_python//python:site"]
 
+    _report_progress(ctx, "Extracting")
     result = ctx.execute(args, quiet=False)
     if result.return_code:
         fail("extract_wheel failed: %s (%s)" % (result.stdout, result.stderr))
@@ -99,6 +106,7 @@ def _build_wheel(ctx):
     if ctx.attr.sha256:
         cmd += ["--sha256", ctx.attr.sha256]
 
+    _report_progress(ctx, "Building")
     result = ctx.execute(cmd, quiet=False, environment=env)
     if result.return_code:
         fail("pip wheel failed: %s (%s)" % (result.stdout, result.stderr))
