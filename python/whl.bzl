@@ -62,7 +62,7 @@ def _build_wheel(ctx):
     # Resolve the paths to the dependency wheels to force them to be created.
     # This may cause re-starting this repository rule, see:
     #  https://docs.bazel.build/versions/master/skylark/repository_rules.html#when-is-the-implementation-function-executed
-    paths = [ctx.path(d) for d in ctx.attr.buildtime_deps]
+    paths = [ctx.path(d) for d in ctx.attr.build_deps]
 
     # Check that python headers are installed. Otherwise some wheels may be built
     # differently depending on the machine..
@@ -78,7 +78,7 @@ def _build_wheel(ctx):
     # Compute a hash from the build time dependencies + env, and use that in the cache
     # key.  The idea is that if any buildtime dependency changes versions, we will
     # no longer use the same cached wheel.
-    hash_input = ':'.join([dep.name for dep in ctx.attr.buildtime_deps] + ctx.attr.additional_buildtime_env)
+    hash_input = ':'.join([dep.name for dep in ctx.attr.build_deps] + ctx.attr.additional_buildtime_env)
     cmd = [python, "-c", "import hashlib; print(hashlib.sha256('%s'.encode('utf-8')).hexdigest())" % hash_input]
     result = ctx.execute(cmd)
     if result.return_code:
@@ -97,9 +97,9 @@ def _build_wheel(ctx):
         # paths and the resulting wheel has a higher chance of being deterministic.
         "--build-dir", "/tmp/pip-build/%s" % ctx.name,
     ] + [
-        "--additional-buildtime-env=%s" % x for x in ctx.attr.additional_buildtime_env
+        "--build-env=%s" % x for x in ctx.attr.additional_buildtime_env
     ] + [
-        "--additional-buildtime-deps=%s" % ctx.path(x) for x in ctx.attr.buildtime_deps
+        "--build-deps=%s" % ctx.path(x) for x in ctx.attr.build_deps
     ] + [
         "--pip_arg=%s" % a for a in ctx.attr.pip_args
     ]
@@ -133,7 +133,7 @@ _download_or_build_wheel_attrs = {
     "urls": attr.string_list(),
     "sha256": attr.string(),
     "local_path": attr.string(),
-    "buildtime_deps": attr.label_list(
+    "build_deps": attr.label_list(
         allow_files=["*.whl"],
     ),
     "additional_buildtime_env": attr.string_list(),

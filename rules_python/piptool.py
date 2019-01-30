@@ -132,8 +132,8 @@ def build_wheel(distribution,
                 directory,
                 cache_key=None,
                 build_dir=None,
-                additional_buildtime_env=None,
-                additional_buildtime_deps=None,
+                build_env=None,
+                build_deps=None,
                 sha256=None,
                 pip_args=None,
                 resolving=False):
@@ -161,7 +161,7 @@ def build_wheel(distribution,
   with open(os.path.join(home, ".pydistutils.cfg"), "w") as f:
     f.write("[easy_install]\nallow_hosts = ''\n")
 
-  for d in additional_buildtime_deps or []:
+  for d in build_deps or []:
     Wheel(d).expand(home)
 
   # Process .pth files of the extracted build deps.
@@ -178,7 +178,7 @@ def build_wheel(distribution,
   ])
 
   # Set any other custom env variables the user wants to add to the wheel build.
-  env.update(dict([x.split("=", 1) for x in additional_buildtime_env or []]))
+  env.update(dict([x.split("=", 1) for x in build_env or []]))
 
   # For determinism, canonicalize distribution name to lowercase here, since, lo and
   # behold, the wheel contents may be different depending on the case passed to
@@ -314,10 +314,10 @@ parser.add_argument('--cache-key', action='store',
 parser.add_argument('--build-dir', action='store',
                     help=('A directory to build the wheel in, needs to be stable to keep the build deterministic (e.g. debug symbols).'))
 
-parser.add_argument('--additional-buildtime-env', action='append', default=[],
+parser.add_argument('--build-env', action='append', default=[],
                     help=('Environmental variables to set when building.'))
 
-parser.add_argument('--additional-buildtime-deps', action='append', default=[],
+parser.add_argument('--build-deps', action='append', default=[],
                     help=('Wheels that are required to be installed when building.'))
 
 parser.add_argument('--distribution', action='store',
@@ -656,16 +656,28 @@ def resolve(args):
     for whl in whls
   }
 
-  def transitive_deps(wheel, extra=None, collected=None):
+  def transitive_deps(wheel, extra=None, collected=None, build_info=None):
     deps = wheel.dependencies(extra)
+    if build_info:
+      deps |= set(build_info.get(wheel.name(), {}).get("additional_runtime_deps", []))
     if collected is None:
       collected = set()
-    for dep in wheel.dependencies(extra):
+    for dep in deps.copy():
       if dep not in collected:
         collected.add(dep)
         d, extra = split_extra(dep)
-        deps = deps.union(transitive_deps(whl_map[d], extra, collected))
+        deps |= transitive_deps(whl_map[d], extra, collected, build_info)
     return deps
+
+  def transitive_build_deps(wheel, build_info):
+      deps = set()
+      for build_dep in build_info.get(wheel.name(), {}).get("additional_buildtime_deps", []):
+        # Add any packages mentioned explicitly in "additional_buildtime_deps".
+        deps |= {whl_map[build_dep]}
+        # Add any runtime deps of such packages.
+        for runtime_dep_of_build_dep in transitive_deps(whl_map[build_dep], build_info=build_info):
+          deps |= {whl_map[runtime_dep_of_build_dep]}
+      return deps
 
   wheel_digests = {}
   try:
@@ -689,10 +701,7 @@ def resolve(args):
         if resolved_digest == wheel_digests[w.name()]:
           continue
 
-      build_deps = set().union(*[
-        {whl_map[d].path()} | {whl_map[w].path() for w in transitive_deps(whl_map[d])}
-        for d in build_info.get(w.name(), {}).get("additional_buildtime_deps", [])
-      ])
+      build_deps = {w.path() for w in transitive_build_deps(w, build_info)}
       build_env = build_info.get(w.name(), {}).get("additional_buildtime_env", [])
       tempdir = tempfile.mkdtemp()
       try:
@@ -705,8 +714,8 @@ def resolve(args):
           # compute here will not match the output of build_wheel() due to debug
           # symbols.
           build_dir="/tmp/pip-build/%s_wheel" % w.repository_name(prefix=args.name),
-          additional_buildtime_env=build_env,
-          additional_buildtime_deps=build_deps,
+          build_env=build_env,
+          build_deps=build_deps,
           pip_args=args.pip_args,
           sha256=wheel_digests.get(w.name(), None),
           resolving=True,
@@ -744,10 +753,10 @@ def resolve(args):
     extras = ', '.join([quote(extra) for extra in sorted(possible_extras.get(wheel, []))])
     if extras != '':
       attrs += [("extras", '[{}]'.format(extras))]
-    transitive_runtime_deps = set([split_extra(dep)[0] for dep in transitive_deps(wheel)])
-    transitive_runtime_deps = ', '.join([quote(dep) for dep in sorted(transitive_runtime_deps)])
-    if transitive_runtime_deps != '':
-      attrs += [("transitive_runtime_deps", '[{}]'.format(transitive_runtime_deps))]
+    build_deps = {w.name() for w in transitive_build_deps(wheel, build_info)}
+    build_deps = ', '.join([quote(dep) for dep in sorted(build_deps)])
+    if build_deps != '':
+      attrs += [("build_deps", '[{}]'.format(build_deps))]
 
     return """"{}": {{
         {},

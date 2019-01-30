@@ -44,18 +44,11 @@ def pip_install():
 def _wheel_target(w):
     return "@%s_wheel//:%s" % (w["name"], w["wheel_name"])
 
-def _build_deps(k):
-    wheel = wheels[k]
-    buildtime_deps = {}
-    for d in wheel.get("additional_buildtime_deps", []):
-        buildtime_deps += {d: None} + {k: None for k in wheels[d].get("transitive_runtime_deps", [])}
-    return buildtime_deps.keys()
-
 def download_or_build_wheel(distribution, rule=_download_or_build_wheel, **kwargs):
     w = wheels[distribution]
     attrs = {a: w.get(a, None) for a in _wheel_rules.download_or_build_wheel.attrs}
     attrs["distribution"] = distribution
-    attrs["buildtime_deps"] = [_wheel_target(wheels[k]) for k in _build_deps(distribution)]
+    attrs["build_deps"] = [_wheel_target(wheels[k]) for k in w.get("build_deps", [])]
     rule(
         name = "%s_wheel" % w["name"],
         **attrs + kwargs
