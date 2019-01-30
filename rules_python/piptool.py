@@ -200,6 +200,7 @@ def build_wheel(distribution,
   locally_built = False
   with CaptureOutput() as output:
     if pip_main(cmd, env):
+      print("pip command failed: " + str(cmd))
       sys.exit(1)
     if re.search(r"Running setup\.py bdist_wheel", output.stdout.getvalue().decode()):
       locally_built = True
