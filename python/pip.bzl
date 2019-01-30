@@ -60,7 +60,10 @@ sh_binary(
 
     ctx.file(
         "update.sh",
-        "#!/bin/bash\n'%s' \"$@\"\n" % "' '".join(cmd),
+        "\n".join([
+            "#!/bin/bash",
+            "'%s' \"$@\"" % "' '".join(cmd),
+        ]),
         executable = True,
     )
 
@@ -74,6 +77,16 @@ sh_binary(
 
     if result.return_code:
         fail("pip_import failed: %s (%s)" % (result.stdout, result.stderr))
+
+    ctx.file(
+        "update.sh",
+        " ".join([
+            "#!/bin/bash",
+            "echo requirements_bzl attribute is mandatory for checked-in requirements",
+            "exit 1",
+        ]),
+        executable = True,
+    )
 
 _pip_import = repository_rule(
     attrs = {
