@@ -219,6 +219,8 @@ def build_wheel(distribution,
   if sha256 and computed_sha256 != sha256:
     if resolving:
       if locally_built:
+        # If we built the wheel locally and the sha256 had changed from the previous one,
+        # build the wheel again to make sure we get the same digest again.
         os.rename(wheel.path(), wheel.path() + ".0")
         if pip_main(cmd, env):
           sys.exit(1)
@@ -684,10 +686,12 @@ def resolve(args):
     with open(args.output, 'r') as f:
       contents = f.read()
       contents = re.sub(r"^wheels = ", "", contents, flags=re.MULTILINE)
+      # Need to use literal_eval, since this is bzl, not json (trailing commas, comments).
       wheel_info = ast.literal_eval(contents)
       wheel_digests.update({k: v["sha256"] for k, v in wheel_info.items() if "sha256" in v})
-  except:
-    pass
+  except (ValueError, IOError):
+    # If we can't parse the old wheel map, the remaining steps will be a bit slower.
+    print("Failed to parse old wheel map, but this is OK.")
 
   # If user requested digests, we build each wheel again in isolation to get a
   # deterministic sha256.
