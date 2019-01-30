@@ -162,6 +162,11 @@ load(
 _extras_install()
 
 wheel_overrides = {
+    "nvidia-ml-py": {
+        "name": "examples_checked_in_requirements_bzl__nvidia_ml_py_375_53",
+        "version": "375.53",
+        "wheel_name": "nvidia_ml_py-375.53.1-py2-none-any.whl",
+    },
     "pycuda": {
         "additional_buildtime_deps": ["numpy"],
     },

@@ -711,7 +711,7 @@ def resolve(args):
       try:
         sha256 = build_wheel(
           distribution=w.distribution(),
-          version=w.version(),
+          version=build_info.get(w.name(), {}).get("version", w.version()),
           directory=tempdir,
           # NOTE: The build-dir here must match the one that we use in the
           # individual build_wheel() rules later, otherwise the sha256 that we

@@ -29,5 +29,6 @@ py_test(
         requirement("pyhive"),
         requirement("sqlalchemy"),
         requirement("tensorflow"),
+        requirement("nvidia-ml-py"),
     ],
 )

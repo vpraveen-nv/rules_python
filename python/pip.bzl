@@ -161,6 +161,8 @@ load("{repo}//:requirements.bzl", wheels_{key} = "wheels")
 
     gathers = "".join(["""\
     for k, v in wheels_{key}.items():
+        if "name" not in v:
+            continue
         if k not in all_reqs:
             all_reqs[k] = {{}}
         all_reqs[k]["{key}"] = "@%s//:pkg" % v["name"]

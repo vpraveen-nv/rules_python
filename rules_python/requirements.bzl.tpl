@@ -17,7 +17,12 @@ def _merged_wheels():
         "pip_args": _pip_args,
         "python": _python,
     }
-    return {k: v + default_attrs + _additional_attributes.get(k, {}) for k, v in _wheels.items()}
+    # Merge _additional_attributes with _wheels, applying default_attrs to each item.
+    return {
+        k: default_attrs + v for k, v in _additional_attributes.items()
+    } + {
+        k: default_attrs + v + _additional_attributes.get(k, {}) for k, v in _wheels.items()
+    }
 
 wheels = _merged_wheels()
 
@@ -36,6 +41,8 @@ def requirement(name, target = "pkg", binary = None):
 
 def pip_install():
     for distribution, attributes in wheels.items():
+        if "name" not in attributes:
+            continue
         wheel = attributes.get("wheel", None)
         if not wheel:
             wheel = download_or_build_wheel(distribution = distribution)
