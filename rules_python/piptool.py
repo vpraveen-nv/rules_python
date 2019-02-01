@@ -587,6 +587,7 @@ def resolve(args):
   with open(os.path.join(tempdir, "sitecustomize.py"), "w") as f:
     f.write("import site; import os; site.addsitedir(os.path.dirname(__file__))")
 
+  downloaded_wheel_urls = {}
   for i, o in enumerate(ordering):
       # Install the wheels since they can be dependent at build time
       for _, _, filelist in os.walk(args.directory):
@@ -615,29 +616,18 @@ def resolve(args):
               pip_args += ["--requirement=" + f.name]
               pip_args += ["--constraint=" + f2.name]
               pip_args += args.pip_args
-              # https://github.com/pypa/pip/blob/9.0.1/pip/__init__.py#L209
-              if pip_main(pip_args, env):
-                shutil.rmtree(tempdir)
-                sys.exit(1)
+              with CaptureOutput() as output:
+                if pip_main(pip_args, env):
+                  print("pip command failed: " + str(pip_args))
+                  shutil.rmtree(tempdir)
+                  sys.exit(1)
+                dls = re.findall(r'(?:Downloading|Using cached) (\S*\.whl)', output.stdout.getvalue().decode())
+                downloaded_wheel_urls.update({
+                  url[url.rfind("/")+1 :]: url
+                  for url in dls
+                })
 
   shutil.rmtree(tempdir)
-
-  # Find all http/s URLs explicitly stated in the requirements.txt file - these
-  # URLs will be passed through to the bazel rules below to support wheels that
-  # are not in any index.
-  url_pattern = re.compile(r'(https?://\S+).*')
-  def get_url(line):
-    m = url_pattern.match(line)
-    return m.group(1) if m else None
-  requirements_urls = []
-  for inputfile in args.input:
-    with open(inputfile) as f:
-      requirements_urls += [get_url(x) for x in f.readlines() if get_url(x)]
-  def requirement_download_url(wheel_name):
-    for url in requirements_urls:
-      if wheel_name in url:
-        return url
-    return None
 
   # Enumerate the .whl files we downloaded.
   whls = wheels_from_dir(args.directory)
@@ -691,6 +681,11 @@ def resolve(args):
   # deterministic sha256.
   if args.digests:
     for w in whls:
+      # If we downloaded a whl file instead of building it locally, we can use its digest as is.
+      if w.basename() in downloaded_wheel_urls:
+        wheel_digests[w.name()] = digest(w.path())
+        continue
+
       # If the current (not-yet-updated) requirements.bzl already has a sha256 and it
       # matches with the sha of the wheel that we bulit during resolve (typical for
       # binary distributions), then we can just use that.
@@ -743,7 +738,7 @@ def resolve(args):
     attrs += [("wheel_name", quote(wheel.basename()))]
     if args.digests:
       attrs += [("sha256", quote(wheel_digests[wheel.name()]))]
-    url = requirement_download_url(wheel.basename())
+    url = downloaded_wheel_urls.get(wheel.basename(), None)
     if url:
       attrs += [("urls", '[{}]'.format(quote(url)))]
     if args.output_format != 'download':
