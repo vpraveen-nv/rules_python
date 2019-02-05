@@ -405,9 +405,9 @@ py_library(
   repository=args.repository,
   dependencies=''.join([
     ('\n        "%s",' % d) if d[0] == "@" else ('\n        requirement("%s"),' % d)
-    for d in external_deps
+    for d in sorted(external_deps)
   ]),
-  imports=','.join(map(lambda i: '"%s"' % i, imports)),
+  imports=','.join(['"%s"' % i for i in sorted(imports)]),
   extras='\n\n'.join([
     """py_library(
     name = "{extra}",
@@ -417,7 +417,7 @@ py_library(
 )""".format(extra=extra,
             deps=','.join([
                 'requirement("%s")' % dep
-                for dep in whl.dependencies(extra)
+                for dep in sorted(whl.dependencies(extra))
             ]))
     for extra in args.extras or []
   ]),
