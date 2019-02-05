@@ -546,8 +546,9 @@ def strip_wheel(w):
     try:
       w.expand(tempdir)
       with zipfile.ZipFile(w.path(), 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(tempdir):
-          for f in files:
+        for root, dirs, files in os.walk(tempdir):
+          dirs.sort()  # https://stackoverflow.com/questions/18282370/in-what-order-does-os-walk-iterates-iterate
+          for f in sorted(files):
             local_path = os.path.join(root, f)
             with open(local_path, "rb") as ff:
               info = zipfile.ZipInfo(os.path.relpath(local_path, start=tempdir), ts)
