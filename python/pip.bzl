@@ -257,6 +257,7 @@ def proxy_install():
 {gathers}
     for req, gathers in all_reqs.items():
         conditions = {{k: v for k, v in gathers.items()}}
+        conditions["//conditions:default"] = "@{name}//:empty"
         name = _sanitize(req)
         native.alias(
             name = name,
