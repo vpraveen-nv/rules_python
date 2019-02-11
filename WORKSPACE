@@ -61,9 +61,14 @@ _piptool_install()
 
 http_archive(
     name = "subpar",
-    urls = ["https://github.com/google/subpar/archive/07ff5feb7c7b113eea593eb6ec50b51099cf0261.tar.gz"],
-    sha256 = "a694bd35ff4be79a49fbb6e5fd6b1c9083ef05cd752409f5fe349f6d74432fd8",
-    strip_prefix = "subpar-07ff5feb7c7b113eea593eb6ec50b51099cf0261",
+    urls = ["https://github.com/google/subpar/archive/a4f9b23bf01bcc7a52d458910af65a90ee991aff.tar.gz"],
+    sha256 = "cf3762b10426a1887d37f127b4c1390785ecb969254096eb714cc1db371f78d6",
+    strip_prefix = "subpar-a4f9b23bf01bcc7a52d458910af65a90ee991aff",
+    patch_args = ["-p1"],
+    patches = [
+        # https://github.com/google/subpar/pull/92
+        "//:third_party/subpar/support-directories-in-manifest.patch",
+    ],
 )
 
 # Test data for WHL tool testing.

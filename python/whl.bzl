@@ -32,7 +32,7 @@ def _extract_wheel(ctx, wheel):
     args = [
         python,
         ctx.path(ctx.attr._piptool),
-        "extract",
+        "genbuild",
         "--directory", str(ctx.path("")),
         "--repository", ctx.attr.repository,
     ]
@@ -47,12 +47,19 @@ def _extract_wheel(ctx, wheel):
     # Add our sitecustomize.py that ensures all .pth files are run.
     args += ["--add-dependency=@io_bazel_rules_python//python:site"]
 
-    _report_progress(ctx, "Extracting")
+    for x in ctx.attr.patches:
+        args += ["--patches=@%s" % x]
+    if ctx.attr.patch_tool:
+        args += ["--patch-tool=%s" % ctx.attr.patch_tool]
+    for x in ctx.attr.patch_args:
+        args += ["--patch-args=%s" % x]
+    for x in ctx.attr.patch_cmds:
+        args += ["--patch-cmds=%s" % x]
+
+    _report_progress(ctx, "Genbuild")
     result = ctx.execute(args, quiet=False)
     if result.return_code:
-        fail("extract_wheel failed: %s (%s)" % (result.stdout, result.stderr))
-
-    patch(ctx)
+        fail("wheel genbuild failed: %s (%s)" % (result.stdout, result.stderr))
 
 
 def _build_wheel(ctx):

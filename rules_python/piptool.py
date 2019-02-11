@@ -339,14 +339,27 @@ parser.add_argument('--pip_arg', dest='pip_args', action='append', default=[],
 # ---------------
 
 def extract(args):
-  # Extract the files into the current directory
   whl = Wheel(args.whl)
   whl.expand(args.directory)
 
+
+parser = subparsers.add_parser('extract', help='Extract a wheel')
+parser.set_defaults(func=extract)
+
+parser.add_argument('--whl', action='store', required=True,
+                    help=('The .whl file we are expanding.'))
+
+parser.add_argument('--directory', action='store', default='.',
+                    help='The directory into which to expand things.')
+
+
+# piptool genbuild
+# ---------------
+
+def genbuild(args):
+  whl = Wheel(args.whl)
   extra_deps = args.add_dependency or []
   drop_deps = {d: None for d in args.drop_dependency or []}
-
-  imports = ['.']
 
   external_deps = [d for d in itertools.chain(whl.dependencies(), extra_deps) if d not in drop_deps]
 
@@ -377,27 +390,44 @@ py_binary(
         entrypoint_file=entrypoint_file
         )
 
+  attrs = []
+  if args.patches:
+    attrs += [("patches", '["%s"]' % '", "'.join(args.patches))]
+  if args.patch_tool:
+    attrs += [("patch_tool", '"%s"' % args.patch_tool)]
+  if args.patch_args:
+    attrs += [("patch_args", '["%s"]' % '", "'.join(args.patch_args))]
+  if args.patch_cmds:
+    attrs += [("patch_cmds", '["%s"]' % '", "'.join(args.patch_cmds))]
+  attrs += [("distribution", '"%s"' % whl.distribution().lower())]
+  attrs += [("version", '"%s"' % whl.version())]
+
   with open(os.path.join(args.directory, 'BUILD'), 'w') as f:
     f.write("""
 package(default_visibility = ["//visibility:public"])
 
+load("@io_bazel_rules_python//python:python.bzl", "extract_wheel")
 load("@{repository}//:requirements.bzl", "requirement")
 
 filegroup(
   name = "wheel",
   data = ["{wheel}"],
 )
+
+extract_wheel(
+    name = "extracted",
+    wheel = "{wheel}",
+    {attrs}
+)
+
 py_library(
     name = "pkg",
-    srcs = glob(["**/*.py"]),
-    data = glob(["**/*"], exclude=["**/*.py", "**/* *", "*.whl", "BUILD", "WORKSPACE"]),
-    # This makes this directory a top-level in the python import
-    # search path for anything that depends on this.
-    imports = [{imports}],
+    imports = ["extracted"],
     deps = [
-        {dependencies}
+        ":extracted",{dependencies}
     ],
 )
+
 {extras}
 {entrypoints_build}
 {contents}""".format(
@@ -407,7 +437,7 @@ py_library(
     ('\n        "%s",' % d) if d[0] == "@" else ('\n        requirement("%s"),' % d)
     for d in sorted(external_deps)
   ]),
-  imports=','.join(['"%s"' % i for i in sorted(imports)]),
+  attrs=",\n    ".join(['{} = {}'.format(k, v) for k, v in attrs]),
   extras='\n\n'.join([
     """py_library(
     name = "{extra}",
@@ -424,8 +454,8 @@ py_library(
   entrypoints_build=entrypoints_build,
   contents=contents))
 
-parser = subparsers.add_parser('extract', help='Extract one or more wheels as a py_library')
-parser.set_defaults(func=extract)
+parser = subparsers.add_parser('genbuild', help='Extract one or more wheels as a py_library')
+parser.set_defaults(func=genbuild)
 
 parser.add_argument('--whl', action='store', required=True,
                     help=('The .whl file we are expanding.'))
@@ -447,6 +477,11 @@ parser.add_argument('--directory', action='store', default='.',
 
 parser.add_argument('--extras', action='append',
                     help='The set of extras for which to generate library targets.')
+
+parser.add_argument('--patches', action='append')
+parser.add_argument('--patch-tool', action='store')
+parser.add_argument('--patch-args', action='append')
+parser.add_argument('--patch-cmds', action='append')
 
 
 # piptool resolve
