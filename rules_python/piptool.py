@@ -605,7 +605,7 @@ def resolve(args):
               f.write('\n'.join(o))
               f.flush()
 
-              f2.write('\n'.join(['\n'.join(c) for c in ordering[:i]]))
+              f2.write('\n'.join(['\n'.join(c) for c in ordering]))
               f2.flush()
 
               pip_args = ["wheel"]

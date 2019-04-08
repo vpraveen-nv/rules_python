@@ -62,6 +62,7 @@ sh_binary(
         "update.sh",
         "\n".join([
             "#!/bin/bash",
+            "rm -rf \"%s\"" % str(ctx.path("build-directory")),
             "'%s' \"$@\"" % "' '".join(cmd),
         ]),
         executable = True,
