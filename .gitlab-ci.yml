@@ -1,0 +1,23 @@
+# Image built from tools/Dockerfile
+image: 'gitlab-master.nvidia.com:5005/ai-infra/rules_python:v2'
+
+stages:
+  - build
+  - publish
+
+build:
+  tags:
+    - acme-docker-reqfresh
+  stage: build
+  script: bazel test -- //... -//docs/...
+
+publish:
+  tags:
+    - acme-docker-reqfresh
+  stage: publish
+  script:
+    - export GIT_COMMIT_HASH=$(git rev-parse HEAD)
+    - git archive --prefix=rules_python-$GIT_COMMIT_HASH/ HEAD | gzip > rules_python.tar.gz
+    - aws s3 ls "s3://archives-nvda-ai/ai-infra/rules_python/$GIT_COMMIT_HASH.tar.gz" && { echo "Must not overwrite existing files!"; exit 0; }
+    - aws s3 cp rules_python.tar.gz "s3://archives-nvda-ai/ai-infra/rules_python/$GIT_COMMIT_HASH.tar.gz"
+
