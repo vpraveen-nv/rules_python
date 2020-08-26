@@ -37,6 +37,7 @@ sh_binary(
       "%{additional_attributes}": ctx.attr.requirements_overrides or "{}",
       "%{gendir}": ctx.attr.gendir or "{}",
       "%{env}": ", ".join(["\"%s\"" % x for x in ctx.attr.env]),
+      "%{checked_in_reqs}": "True" if ctx.attr.requirements_bzl else "False",
     })
 
 

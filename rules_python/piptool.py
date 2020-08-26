@@ -447,7 +447,7 @@ parser.set_defaults(func=genbuild)
 parser.add_argument('--whl', action='store', required=True,
                     help=('The .whl file we are expanding.'))
 
-parser.add_argument('--wheel_repo', action='store',
+parser.add_argument('--wheel-repo', action='store',
                     help=('The repository name where the .whl file is.'))
 
 parser.add_argument('--repository', action='store', required=True,

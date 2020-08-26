@@ -38,6 +38,8 @@ def _extract_wheel(ctx, wheel):
     ]
 
     args += ["--whl=%s" % wheel]
+    if ctx.attr.wheel_repo:
+        args += ["--wheel-repo=%s" % ctx.attr.wheel_repo]
     args += ["--add-dependency=%s" % d for d in ctx.attr.additional_runtime_deps]
     args += ["--drop-dependency=%s" % d for d in ctx.attr.remove_runtime_deps]
     if ctx.attr.additional_build_content:
@@ -174,6 +176,7 @@ def _extract_wheel_impl(ctx):
 
 _extract_wheel_attrs = {
     "wheel": attr.label(allow_files = True),
+    "wheel_repo": attr.string(),
     "additional_runtime_deps": attr.string_list(),
     "additional_build_content":  attr.label(allow_single_file=True),
     "remove_runtime_deps": attr.string_list(),

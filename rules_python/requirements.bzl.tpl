@@ -13,6 +13,7 @@ _python_version = "%{python_version}" or None
 _repository = "%{repo}"
 _additional_attributes = %{additional_attributes}
 _env = [%{env}]
+_checked_in_reqs = %{checked_in_reqs}
 
 def _merged_wheels():
     default_attrs = {
@@ -80,6 +81,8 @@ def extract_wheel(wheel, distribution, rule=_extract_wheel, **kwargs):
     w = wheels[distribution]
     attrs = {a: w.get(a, None) for a in _wheel_rules.extract_wheel.attrs}
     attrs["wheel"] = wheel
+    if _checked_in_reqs:
+        attrs["wheel_repo"] = "%s_wheel" % w["name"]
     attrs.update(kwargs)
     rule(
         name = w["name"],
