@@ -51,8 +51,8 @@ skydoc_repositories()
 # Python
 load("//python:def.bzl", "python_toolchain_repository")
 python_toolchain_repository(
-    name = "python2",
-    path = "/usr/bin/python2",
+    name = "python3",
+    path = "/usr/bin/python3",
 )
 
 # Requirements for building our piptool.
@@ -90,6 +90,7 @@ http_file(
     urls = ["https://pypi.python.org/packages/c6/28/" +
            "67651b4eabe616b27472c5518f9b2aa3f63beab8f62100b26f05ac428639/" +
            "grpcio-1.6.0-cp27-cp27m-manylinux1_i686.whl"],
+    downloaded_file_path = "grpcio-1.6.0-cp27-cp27m-manylinux1_i686.whl",
 )
 
 http_file(
@@ -99,6 +100,7 @@ http_file(
     urls = ["https://pypi.python.org/packages/a6/1c/" +
            "72a18c8c7502ee1b38a604a5c5243aa8c2a64f4bba4e6631b1b8972235dd/" +
            "futures-3.1.1-py2-none-any.whl"],
+    downloaded_file_path = "futures-3.1.1-py2-none-any.whl",
 )
 
 http_file(
@@ -108,6 +110,7 @@ http_file(
     urls = ["https://pypi.python.org/packages/d7/1d/" +
            "68874943aa37cf1c483fc61def813188473596043158faa6511c04a038b4/" +
            "futures-2.2.0-py2.py3-none-any.whl"],
+    downloaded_file_path = "futures-2.2.0-py2.py3-none-any.whl",
 )
 
 http_file(
@@ -117,6 +120,7 @@ http_file(
     urls = ["https://pypi.python.org/packages/e6/35/" +
            "f187bdf23be87092bd0f1200d43d23076cee4d0dec109f195173fd3ebc79/" +
            "mock-2.0.0-py2.py3-none-any.whl"],
+    downloaded_file_path = "mock-2.0.0-py2.py3-none-any.whl",
 )
 
 http_file(
@@ -126,56 +130,57 @@ http_file(
     urls = ["https://pypi.python.org/packages/6e/86/" +
            "cae57e4802e72d9e626ee5828ed5a646cf4016b473a4a022f1038dba3460/" +
            "google_cloud_language-0.29.0-py2.py3-none-any.whl"],
+    downloaded_file_path = "google_cloud_language-0.29.0-py2.py3-none-any.whl",
 )
 
 # Imports for examples
-#pip_import(
-#    name = "examples_helloworld",
-#    requirements = ["//examples/helloworld:requirements.txt"],
-#)
-#
-#load(
-#    "@examples_helloworld//:requirements.bzl",
-#    _helloworld_install = "pip_install",
-#)
-#
-#_helloworld_install()
-#
-#pip_import(
-#    name = "examples_version",
-#    requirements = ["//examples/version:requirements.txt"],
-#)
-#
-#load(
-#    "@examples_version//:requirements.bzl",
-#    _version_install = "pip_install",
-#)
-#
-#_version_install()
-#
-#pip_import(
-#    name = "examples_boto",
-#    requirements = ["//examples/boto:requirements.txt"],
-#)
-#
-#load(
-#    "@examples_boto//:requirements.bzl",
-#    _boto_install = "pip_install",
-#)
-#
-#_boto_install()
-#
-#pip_import(
-#    name = "examples_extras",
-#    requirements = ["//examples/extras:requirements.txt"],
-#)
-#
-#load(
-#    "@examples_extras//:requirements.bzl",
-#    _extras_install = "pip_install",
-#)
-#
-#_extras_install()
+pip_import(
+    name = "examples_helloworld",
+    requirements = ["//examples/helloworld:requirements.txt"],
+)
+
+load(
+    "@examples_helloworld//:requirements.bzl",
+    _helloworld_install = "pip_install",
+)
+
+_helloworld_install()
+
+pip_import(
+    name = "examples_version",
+    requirements = ["//examples/version:requirements.txt"],
+)
+
+load(
+    "@examples_version//:requirements.bzl",
+    _version_install = "pip_install",
+)
+
+_version_install()
+
+pip_import(
+    name = "examples_boto",
+    requirements = ["//examples/boto:requirements.txt"],
+)
+
+load(
+    "@examples_boto//:requirements.bzl",
+    _boto_install = "pip_install",
+)
+
+_boto_install()
+
+pip_import(
+    name = "examples_extras",
+    requirements = ["//examples/extras:requirements.txt"],
+)
+
+load(
+    "@examples_extras//:requirements.bzl",
+    _extras_install = "pip_install",
+)
+
+_extras_install()
 
 wheel_overrides = {
     "nvidia-ml-py": {
@@ -227,7 +232,7 @@ pip_import(
     gendir = "examples/checked_in_requirements_bzl/pip",
     requirements_overrides = wheel_overrides,
     digests = True,
-    python = "@python2//:bin/python",
+    python = "@python3//:bin/python",
 )
 
 load(

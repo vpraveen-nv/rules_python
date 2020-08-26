@@ -7,7 +7,6 @@ extract_wheel(
     name = "absl_py",
     srcs = ["@examples_checked_in_requirements_bzl__absl_py_0_7_0_wheel//:wheel"],
     deps = [
-        requirement("enum34"),
         requirement("six"),
     ],
 )

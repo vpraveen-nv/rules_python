@@ -1,13 +1,13 @@
 """ Install pip requirements. """
 
-# Generated from /home/lpeltonen/src/github.com/bazelbuild/rules_python-jussi/examples/checked_in_requirements_bzl/requirements.txt
-# Generated from /home/lpeltonen/src/github.com/bazelbuild/rules_python-jussi/examples/checked_in_requirements_bzl/requirements-2.txt
+# Generated from /home/lpeltonen/src/github.com/bazelbuild/rules_python-lfs/examples/checked_in_requirements_bzl/requirements.txt
+# Generated from /home/lpeltonen/src/github.com/bazelbuild/rules_python-lfs/examples/checked_in_requirements_bzl/requirements-2.txt
 wheels = {
     "absl-py": {
         "name": "examples_checked_in_requirements_bzl__absl_py_0_7_0",
-        "sha256": "5aa0aea078316836bb81e13ee7991822a7bef07b29d38fcd81c905b919b6e3b2",
+        "sha256": "0d2e5ce3003c7f191078d232365944cd5939876a5dd31af60c18a8ada750a9f1",
         "version": "0.7.0",
-        "wheel_name": "absl_py-0.7.0-py2-none-any.whl",
+        "wheel_name": "absl_py-0.7.0-py3-none-any.whl",
     },
     "backports.functools-lru-cache": {
         "name": "examples_checked_in_requirements_bzl__backports_functools_lru_cache_1_5",
@@ -18,9 +18,9 @@ wheels = {
     },
     "backports.ssl-match-hostname": {
         "name": "examples_checked_in_requirements_bzl__backports_ssl_match_hostname_3_5_0_1",
-        "sha256": "566be0f5f806df3eec10ea5bd653865db38eee87407e94bd765684425015093e",
+        "sha256": "da930031760aa956761cb038b4a88f8895272a1bd088895ed20da8c87293a27f",
         "version": "3.5.0.1",
-        "wheel_name": "backports.ssl_match_hostname-3.5.0.1-py2-none-any.whl",
+        "wheel_name": "backports.ssl_match_hostname-3.5.0.1-py3-none-any.whl",
     },
     "decorator": {
         "name": "examples_checked_in_requirements_bzl__decorator_4_4_2",
@@ -29,39 +29,32 @@ wheels = {
         "version": "4.4.2",
         "wheel_name": "decorator-4.4.2-py2.py3-none-any.whl",
     },
-    "enum34": {
-        "name": "examples_checked_in_requirements_bzl__enum34_1_1_10",
-        "sha256": "a98a201d6de3f2ab3db284e70a33b0f896fbf35f8086594e8c9e74b909058d53",
-        "urls": ["https://files.pythonhosted.org/packages/6f/2c/a9386903ece2ea85e9807e0e062174dc26fdce8b05f216d00491be29fad5/enum34-1.1.10-py2-none-any.whl"],
-        "version": "1.1.10",
-        "wheel_name": "enum34-1.1.10-py2-none-any.whl",
-    },
     "future": {
         "name": "examples_checked_in_requirements_bzl__future_0_18_2",
-        "sha256": "35794e2225e73a94325363274f35e4c814d3ff528d24503ee1cd60c1201647db",
+        "sha256": "3dee4ccc7169b779901bc41cc5613229ee4fdb25198dd78c992af2dbcdfc0a41",
         "version": "0.18.2",
-        "wheel_name": "future-0.18.2-py2-none-any.whl",
+        "wheel_name": "future-0.18.2-py3-none-any.whl",
     },
     "networkx": {
         "name": "examples_checked_in_requirements_bzl__networkx_2_2",
         "extras": ["numpy", "pandas"],
-        "sha256": "1d833f5eca7ebd0a9227781161360bfb622e68bdf629965e39e2f159879db56a",
+        "sha256": "9e524dbf1fe76d210d663f0fcef4d754a341160a779ff3876b80575bb0f7a2aa",
         "version": "2.2",
         "wheel_name": "networkx-2.2-py2.py3-none-any.whl",
     },
     "numpy": {
-        "name": "examples_checked_in_requirements_bzl__numpy_1_16_6",
-        "sha256": "1680c8d5086a88d293dfd1a10b6429a09140cacee878034fa2308472ec835db4",
-        "urls": ["https://files.pythonhosted.org/packages/3a/5f/47e578b3ae79e2624e205445ab77a1848acdaa2929a00eeef6b16eaaeb20/numpy-1.16.6-cp27-cp27mu-manylinux1_x86_64.whl"],
-        "version": "1.16.6",
-        "wheel_name": "numpy-1.16.6-cp27-cp27mu-manylinux1_x86_64.whl",
+        "name": "examples_checked_in_requirements_bzl__numpy_1_19_1",
+        "sha256": "cf1347450c0b7644ea142712619533553f02ef23f92f781312f6a3553d031fc7",
+        "urls": ["https://files.pythonhosted.org/packages/22/e7/4b2bdddb99f5f631d8c1de259897c2b7d65dcfcc1e0a6fd17a7f62923500/numpy-1.19.1-cp36-cp36m-manylinux1_x86_64.whl"],
+        "version": "1.19.1",
+        "wheel_name": "numpy-1.19.1-cp36-cp36m-manylinux1_x86_64.whl",
     },
     "pandas": {
-        "name": "examples_checked_in_requirements_bzl__pandas_0_24_2",
-        "sha256": "cc8fc0c7a8d5951dc738f1c1447f71c43734244453616f32b8aa0ef6013a5dfb",
-        "urls": ["https://files.pythonhosted.org/packages/db/83/7d4008ffc2988066ff37f6a0bb6d7b60822367dcb36ba5e39aa7801fda54/pandas-0.24.2-cp27-cp27mu-manylinux1_x86_64.whl"],
-        "version": "0.24.2",
-        "wheel_name": "pandas-0.24.2-cp27-cp27mu-manylinux1_x86_64.whl",
+        "name": "examples_checked_in_requirements_bzl__pandas_1_1_1",
+        "sha256": "16ae070c47474008769fc443ac765ffd88c3506b4a82966e7a605592978896f9",
+        "urls": ["https://files.pythonhosted.org/packages/a1/c6/9ac4ae44c24c787a1738e5fb34dd987ada6533de5905a041aa6d5bea4553/pandas-1.1.1-cp36-cp36m-manylinux1_x86_64.whl"],
+        "version": "1.1.1",
+        "wheel_name": "pandas-1.1.1-cp36-cp36m-manylinux1_x86_64.whl",
     },
     "pip": {
         "name": "examples_checked_in_requirements_bzl__pip_9_0_0",
@@ -73,9 +66,9 @@ wheels = {
     "pyhive": {
         "name": "examples_checked_in_requirements_bzl__PyHive_0_6_1",
         "extras": ["sqlalchemy"],
-        "sha256": "776ce8854640e6a5f5f0467b45beb2fa106db2b0af4dc5cd41fa875aa974c463",
+        "sha256": "0bc5d28936fe200ca82433b88ae6b68bd7efb94ad39be6852ef4af58802c519e",
         "version": "0.6.1",
-        "wheel_name": "PyHive-0.6.1-py2-none-any.whl",
+        "wheel_name": "PyHive-0.6.1-py3-none-any.whl",
     },
     "python-dateutil": {
         "name": "examples_checked_in_requirements_bzl__python_dateutil_2_8_1",
@@ -100,14 +93,14 @@ wheels = {
     },
     "sqlalchemy": {
         "name": "examples_checked_in_requirements_bzl__SQLAlchemy_1_1_15",
-        "sha256": "c74d4fd2a091a82da98b42c6f464aa40bb9cbdba888aee5c545e1dd65a661130",
+        "sha256": "9c861072f5b27f438486d01f609292049f6555865ddeee6719c2de0fd4dd8d8f",
         "version": "1.1.15",
-        "wheel_name": "SQLAlchemy-1.1.15-cp27-cp27mu-linux_x86_64.whl",
+        "wheel_name": "SQLAlchemy-1.1.15-cp36-cp36m-linux_x86_64.whl",
     },
     "wrapt": {
         "name": "examples_checked_in_requirements_bzl__wrapt_1_11_1",
-        "sha256": "43fd1c8909bc46ffa205771503aa8fc64ad46bb07db38c8b52ba008d793f43f3",
+        "sha256": "a4457256067c652da8136797cd8e729a5fdb1d22d9eb4395e40f1b5df1f13f17",
         "version": "1.11.1",
-        "wheel_name": "wrapt-1.11.1-py2-none-any.whl",
+        "wheel_name": "wrapt-1.11.1-py3-none-any.whl",
     },
 }

@@ -10,13 +10,13 @@ py_entrypoint_binary(
 )
 
 py_entrypoint_binary(
-    name = "f2py2",
+    name = "f2py3",
     entrypoint = "numpy.f2py.f2py2e:main",
     deps = [requirement("numpy")],
 )
 
 py_entrypoint_binary(
-    name = "f2py2.7",
+    name = "f2py3.6",
     entrypoint = "numpy.f2py.f2py2e:main",
     deps = [requirement("numpy")],
 )
