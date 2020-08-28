@@ -17,7 +17,8 @@ publish:
   stage: publish
   script:
     - export GIT_COMMIT_HASH=$(git rev-parse HEAD)
-    - git archive --prefix=rules_python-$GIT_COMMIT_HASH/ HEAD | gzip > rules_python.tar.gz
-    - aws s3 ls "s3://archives-nvda-ai/ai-infra/rules_python/$GIT_COMMIT_HASH.tar.gz" && { echo "Must not overwrite existing files!"; exit 0; }
-    - aws s3 cp rules_python.tar.gz "s3://archives-nvda-ai/ai-infra/rules_python/$GIT_COMMIT_HASH.tar.gz"
+    - export KEY=ai-infra/rules_python/$GIT_COMMIT_HASH.tar.gz
+    - git archive --prefix=rules_python-$GIT_COMMIT_HASH/ HEAD --format=tar.gz --output=$GIT_COMMIT_HASH.tar.gz
+    - curl -I https://archives.nvda.ai/$KEY --fail && { echo "Must not overwrite existing files!"; exit 0; }
+    - aws s3 cp $GIT_COMMIT_HASH.tar.gz s3://archives-nvda-ai/$KEY
 
