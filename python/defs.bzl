@@ -43,6 +43,14 @@ def py_test(*args, **kwargs):
   """
   native.py_test(*args, **kwargs)
 
+def py_runtime(**attrs):
+  """See the Bazel core [py_runtime](https://docs.bazel.build/versions/master/be/python.html#py_runtime) documentation.
+
+  Args:
+    **attrs: Rule attributes
+  """
+  native.py_runtime(**attrs)
+
 def _extract_wheel_impl(ctx):
     if ctx.attr.srcs:
         wheelInfo = ctx.attr.srcs[0][WheelInfo]
