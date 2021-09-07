@@ -61,6 +61,9 @@ load("//python:pip.bzl", "pip_import")
 pip_import(
     name = "piptool_deps",
     requirements = ["//python:requirements.txt"],
+    pip_args = [
+        "--extra-index-url=https://__token__:fxGt-PYBnMeCyAMnQBif@gitlab-master.nvidia.com/api/v4/projects/49706/packages/pypi/simple"
+    ]
 )
 
 load(
